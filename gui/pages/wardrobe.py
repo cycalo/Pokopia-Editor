@@ -75,7 +75,8 @@ class WardrobePage(Page):
             g = QGridLayout()
             g.setSpacing(8)
             for n, (i, name) in enumerate(entries):
-                t = IconTile(name, lambda s, em=emoji.get(name, '👕'), tn=tint: emoji_tile(em, s, tn), style='v', size=(118, 104))
+                t = IconTile(name, lambda s, nm=name, k='outfit' if key == 'outfits' else 'hair', em=emoji.get(name, '👕'),
+                             tn=tint: self.app.assets.wardrobe(k, nm, s) or emoji_tile(em, s, tn), style='v', size=(118, 104))
                 t.clicked.connect(lambda i=i, nm=f'{name} {kind}': self.toggle(i, nm))
                 g.addWidget(t, n // 8, n % 8)
                 self.tiles[(key, n)] = (i, name, t)

@@ -132,6 +132,11 @@ class Assets:
         return self._cached(('react', reaction_id, size), lambda: self._fit(self._image(path), size) if path else
                             self.glyph_tile(T.G['emoji'], size, T.P['heart']))
 
+    def wardrobe(self, kind, name, size):
+        """Outfit / hairstyle icon extracted from the game, or None when it has not been extracted."""
+        path = self.icons.wardrobe_path(kind, name)
+        return self._cached(('wardrobe', (kind, name), size), lambda: self._fit(self._image(path), size)) if path else None
+
     def app(self, size):
         return self._cached(('app', 0, size), lambda: self._fit(QImage(APP_PNG) if os.path.isfile(APP_PNG) else None, size))
 
