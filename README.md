@@ -113,5 +113,5 @@ The exe stores its settings in `%APPDATA%\Pokopia Save Editor`.
 </details>
 
 <div align="center">
-<sub>Fan-made tool, not affiliated with Nintendo, Game Freak or The Pokémon Company. Pokémon names and images belong to their owners.</sub>
+<sub>Code released under the <a href="LICENSE">MIT License</a>. Fan-made tool, not affiliated with Nintendo, Game Freak or The Pokémon Company. Pokémon names and images belong to their owners.</sub>
 </div>
