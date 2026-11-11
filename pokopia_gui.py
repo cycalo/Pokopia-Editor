@@ -1,4 +1,4 @@
-"""Pokopia Save Editor - the window.
+"""Pokopia Editor - the window.
 
   pythonw pokopia_gui.py [SAVE_FOLDER] [--theme dark|light] [--screenshot DIR]
 
@@ -18,7 +18,7 @@ def main():
         import runpy
         try:
             import tkinter.messagebox as mb
-            mb.showinfo('Pokopia Save Editor', 'The new interface needs PySide6. Install it with\n\n'
+            mb.showinfo('Pokopia Editor', 'The new interface needs PySide6. Install it with\n\n'
                         '    py -m pip install PySide6-Essentials\n\nStarting the previous interface for now.')
         except Exception:
             pass

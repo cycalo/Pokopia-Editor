@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="data/app.png" width="128" alt="Pokopia Save Editor icon">
+<img src="data/app.png" width="128" alt="Pokopia Editor icon">
 
-# Pokopia Save Editor
+# Pokopia Editor
 
-**Edit your Pokopia save: bag, residents, moves, emotes and wardrobe. View your islands and photos.**
+**Edit your Pokopia save: bag, residents, moves, emotes and wardrobe. View your islands and photos. Install game mods.**
 
-[![Download](https://img.shields.io/github/v/release/cycalo/Pokopia-Save-Editor?label=Download&style=for-the-badge&color=2ecc71)](https://github.com/cycalo/Pokopia-Save-Editor/releases/latest)
+[![Download](https://img.shields.io/github/v/release/cycalo/Pokopia-Editor?label=Download&style=for-the-badge&color=2ecc71)](https://github.com/cycalo/Pokopia-Editor/releases/latest)
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?style=for-the-badge&logo=windows&logoColor=white)
 ![Pokopia](https://img.shields.io/badge/Pokopia-2.0.x-e74c3c?style=for-the-badge)
 
@@ -18,7 +18,7 @@
 
 ## 🚀 Getting started
 
-1. **[Download `PokopiaSaveEditor.exe`](https://github.com/cycalo/Pokopia-Save-Editor/releases/latest)**. There's nothing to install.
+1. **[Download `PokopiaEditor.exe`](https://github.com/cycalo/Pokopia-Editor/releases/latest)**. There's nothing to install.
 2. **Close your emulator.**
 3. **Double-click the exe.** It finds your save on its own.
 
@@ -44,6 +44,7 @@ If your save isn't found, click **Open → Browse for a folder**.
 | 🗺️ | **Island Map** | See each island from above with everything you've placed. Export it as a PNG |
 | 📷 | **Photos** | Browse your in-game album and export full-size photos |
 | 🛟 | **Backups** | Make, compare and restore backups |
+| 🧩 | **Mods** | Install game mods into your emulator, or save them for an SD card. See [mods/](mods/) |
 
 <table>
   <tr>
@@ -105,10 +106,10 @@ Build the exe:
 
 ```bash
 py -m pip install pyinstaller
-py -m PyInstaller PokopiaSaveEditor.spec --noconfirm
+py -m PyInstaller PokopiaEditor.spec --noconfirm
 ```
 
-The exe stores its settings in `%APPDATA%\Pokopia Save Editor`.
+The exe stores its settings in `%APPDATA%\Pokopia Editor`.
 
 </details>
 
