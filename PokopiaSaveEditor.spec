@@ -4,7 +4,7 @@
 from PyInstaller.utils.win32.versioninfo import (VSVersionInfo, FixedFileInfo, StringFileInfo, StringTable,
                                                  StringStruct, VarFileInfo, VarStruct)
 
-VERSION = (1, 0, 0, 0)
+VERSION = (1, 1, 0, 0)
 VERSION_STR = '.'.join(map(str, VERSION[:3]))
 
 version_info = VSVersionInfo(

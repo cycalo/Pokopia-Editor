@@ -6,7 +6,7 @@ files are only decoded for viewing/exporting.
 The photo layout, and the meaning of
 block id 349 (sea water), are own findings from a real save.
 """
-import array, datetime, glob, io, os, shutil, struct, subprocess, sys, zlib
+import array, datetime, glob, io, os, shutil, struct, subprocess, sys, unicodedata, zlib
 import pokopia_save as ps
 
 try:
@@ -558,6 +558,7 @@ class Icons:
         self.vil_dir = os.path.join(icons, 'villagers')
         self.skill_dir = os.path.join(icons, 'skills')
         self.reaction_dir = os.path.join(icons, 'reactions')
+        self.wardrobe_dir = os.path.join(icons, 'wardrobe')
         self.item_map = self._table('item_menuicon.bin')
         self.vil_map = self._table('villager_portrait.bin')
         self.available = Image is not None and os.path.isdir(self.item_dir) and bool(self.item_map)
@@ -605,3 +606,10 @@ class Icons:
 
     def reaction_path(self, reaction_id):
         return self._numbered(self.reaction_dir, 'reaction', reaction_id)
+
+    def wardrobe_path(self, kind, name):
+        """PNG written by tools/extract_wardrobe_icons.py; kind is 'outfit' or 'hair'."""
+        s = unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode().lower()
+        s = ''.join(c if c.isalnum() else '_' for c in s).strip('_')
+        p = os.path.join(self.wardrobe_dir, f'{kind}_{s}.png')
+        return p if Image is not None and os.path.isfile(p) else None
