@@ -16,7 +16,7 @@ class WelcomePage(QWidget):
         logo.setAlignment(Qt.AlignCenter)
         lay.addWidget(logo)
         lay.addSpacing(10)
-        t = W.label('Pokopia Save Editor', 'h1')
+        t = W.label('Pokopia Editor', 'h1')
         t.setAlignment(Qt.AlignCenter)
         lay.addWidget(t)
         s = W.label('Open your Pokopia save to edit your bag, residents, moves, emotes and wardrobe, and to explore '

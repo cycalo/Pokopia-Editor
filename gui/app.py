@@ -15,8 +15,15 @@ from gui.assets import Assets, app_icon, set_app_id
 from gui.updates import UpdateChecker
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if getattr(sys, 'frozen', False):  # the exe keeps its settings in %APPDATA%\Pokopia Save Editor
-    _USER_DIR = os.path.join(os.environ.get('APPDATA') or os.path.expanduser('~'), 'Pokopia Save Editor')
+if getattr(sys, 'frozen', False):  # the exe keeps its settings in %APPDATA%\Pokopia Editor
+    _APPDATA = os.environ.get('APPDATA') or os.path.expanduser('~')
+    _USER_DIR = os.path.join(_APPDATA, 'Pokopia Editor')
+    _OLD_DIR = os.path.join(_APPDATA, 'Pokopia Save Editor')  # name before 1.2
+    if not os.path.isdir(_USER_DIR) and os.path.isdir(_OLD_DIR):
+        try:
+            os.rename(_OLD_DIR, _USER_DIR)
+        except OSError:
+            _USER_DIR = _OLD_DIR
     os.makedirs(_USER_DIR, exist_ok=True)
     SETTINGS = os.path.join(_USER_DIR, 'settings.json')
 else:
@@ -38,10 +45,11 @@ def page_classes():
     from gui.pages.photos import PhotosPage
     from gui.pages.backups import BackupsPage
     from gui.pages.advanced import AdvancedPage
+    from gui.pages.mods import ModsPage
     return [('Save', [OverviewPage]),
             ('Edit', [BagPage, CatalogPage, ResidentsPage, MovesPage, WardrobePage]),
             ('Explore', [MapPage, PhotosPage]),
-            ('Tools', [BackupsPage, AdvancedPage])]
+            ('Tools', [BackupsPage, ModsPage, AdvancedPage])]
 
 
 class App(QMainWindow):
@@ -56,7 +64,7 @@ class App(QMainWindow):
         self.bridge = Bridge()
         self.bridge.done.connect(self.on_result)
         self.current = 'Overview'
-        self.setWindowTitle('Pokopia Save Editor')
+        self.setWindowTitle('Pokopia Editor')
         self.setWindowIcon(app_icon())
         self.setMinimumSize(1180, 760)
         self.restore_geometry()
@@ -85,11 +93,11 @@ class App(QMainWindow):
         self.st_update.show()
         if self.settings.get('update_toasted') != tag:
             self.settings['update_toasted'] = tag
-            self.toast(f'Pokopia Save Editor {tag} is available.\n'
+            self.toast(f'Pokopia Editor {tag} is available.\n'
                        'Click "Update available" at the bottom right to download it.', 'info')
 
     def open_update(self):
-        QDesktopServices.openUrl(QUrl(getattr(self, 'update_url', None) or 'https://github.com/cycalo/Pokopia-Save-Editor/releases/latest'))
+        QDesktopServices.openUrl(QUrl(getattr(self, 'update_url', None) or 'https://github.com/cycalo/Pokopia-Editor/releases/latest'))
 
     def set_check_updates(self, on):
         self.settings['check_updates'] = bool(on)
@@ -191,7 +199,7 @@ class App(QMainWindow):
         names.setSpacing(0)
         t = W.label('Pokopia', 'h2')
         names.addWidget(t)
-        names.addWidget(W.label('Save Editor', 'small'))
+        names.addWidget(W.label('Editor', 'small'))
         brand.addLayout(names, 1)
         lay.addLayout(brand)
         lay.addSpacing(16)
@@ -348,7 +356,7 @@ class App(QMainWindow):
     def update_chrome(self):
         c = self.save.common if self.save else None
         edited = bool(c and c.edited)
-        self.setWindowTitle(('● ' if edited else '') + 'Pokopia Save Editor' + (f'  —  {c.player_name}' if c else ''))
+        self.setWindowTitle(('● ' if edited else '') + 'Pokopia Editor' + (f'  —  {c.player_name}' if c else ''))
         n = len(c.history) if c else 0
         self.b_save.setEnabled(edited)
         self.b_save.setText(f'Save  ·  {n}' if edited and n else 'Save')
@@ -589,7 +597,7 @@ def main(argv=None):
     set_app_id()
     QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     qa = QApplication.instance() or QApplication(sys.argv[:1])
-    qa.setApplicationName('Pokopia Save Editor')
+    qa.setApplicationName('Pokopia Editor')
     qa.setWindowIcon(app_icon())
     qa.setFont(T.font(10))
     win = App(args[0] if args else None, theme, persist=not shot)

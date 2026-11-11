@@ -8,7 +8,7 @@ from PySide6.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 from version import VERSION, VERSION_STR
 
-REPO = 'cycalo/Pokopia-Save-Editor'
+REPO = 'cycalo/Pokopia-Editor'
 API = f'https://api.github.com/repos/{REPO}/releases/latest'
 RELEASES = f'https://github.com/{REPO}/releases/latest'
 INTERVAL = 24 * 3600
@@ -47,7 +47,7 @@ class UpdateChecker(QObject):
         self.net = self.net or QNetworkAccessManager(self)
         req = QNetworkRequest(QUrl(API))
         req.setRawHeader(b'Accept', b'application/vnd.github+json')
-        req.setRawHeader(b'User-Agent', f'PokopiaSaveEditor/{VERSION_STR}'.encode())
+        req.setRawHeader(b'User-Agent', f'PokopiaEditor/{VERSION_STR}'.encode())
         req.setTransferTimeout(10000)
         reply = self.net.get(req)
         reply.finished.connect(lambda: self._done(reply))
