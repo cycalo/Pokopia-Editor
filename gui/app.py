@@ -1,8 +1,8 @@
 """Main window: sidebar, header, status bar, pages, and all save / undo / file handling."""
 import datetime, json, os, sys, threading
 
-from PySide6.QtCore import QByteArray, QObject, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QGuiApplication, QKeySequence, QShortcut, QPalette, QColor
+from PySide6.QtCore import QByteArray, QObject, QSize, Qt, QTimer, QUrl, Signal
+from PySide6.QtGui import QDesktopServices, QGuiApplication, QKeySequence, QShortcut, QPalette, QColor
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QFrame, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
                                QMessageBox, QFileDialog, QAbstractSpinBox, QStackedWidget, QVBoxLayout, QWidget,
                                QSizePolicy)
@@ -12,6 +12,7 @@ import pokopia_save as ps
 from gui import theme as T
 from gui import widgets as W
 from gui.assets import Assets, app_icon, set_app_id
+from gui.updates import UpdateChecker
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if getattr(sys, 'frozen', False):  # the exe keeps its settings in %APPDATA%\Pokopia Save Editor
@@ -71,6 +72,32 @@ class App(QMainWindow):
             if self.save and start != last and not folder:
                 QTimer.singleShot(400, lambda: self.toast(f'Found your save automatically:\n{start}', 'info'))
         self.check_emulators()
+        self.updates = UpdateChecker(self.settings, self)
+        self.updates.found.connect(self.on_update)
+        if persist:  # not in screenshot runs
+            QTimer.singleShot(2500, self.updates.start)
+
+    # ---------- updates ----------
+    def on_update(self, tag, url):
+        self.update_url = url
+        self.st_update.setText(f'Update available: {tag}')
+        self.st_update.setToolTip(f'{tag} is out. Click to open the download page.')
+        self.st_update.show()
+        if self.settings.get('update_toasted') != tag:
+            self.settings['update_toasted'] = tag
+            self.toast(f'Pokopia Save Editor {tag} is available.\n'
+                       'Click "Update available" at the bottom right to download it.', 'info')
+
+    def open_update(self):
+        QDesktopServices.openUrl(QUrl(getattr(self, 'update_url', None) or 'https://github.com/cycalo/Pokopia-Save-Editor/releases/latest'))
+
+    def set_check_updates(self, on):
+        self.settings['check_updates'] = bool(on)
+        if on:
+            self.updates.start(force=True)
+        else:
+            self.st_update.hide()
+        self.write_settings()
 
     # ---------- settings ----------
     def read_settings(self):
@@ -247,9 +274,12 @@ class App(QMainWindow):
         self.st_path = W.label('', 'small')
         self.st_path.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.st_emu = W.Pill('')
+        self.st_update = W.button('', T.G['down'], self.open_update, accent=True, small=True)
+        self.st_update.hide()
         lay.addWidget(self.st_state)
         lay.addWidget(W.label('·', 'small'))
         lay.addWidget(self.st_path, 1)
+        lay.addWidget(self.st_update)
         lay.addWidget(self.st_emu)
         return bar
 
