@@ -1,4 +1,4 @@
-"""Pokopia Save Editor (v3) - the window.
+"""Pokopia Save Editor - the window.
 
   pythonw pokopia_gui.py [SAVE_FOLDER] [--theme dark|light] [--screenshot DIR]
 
