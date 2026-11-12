@@ -36,7 +36,7 @@ atmosphere/contents/0400A3A01EE4C000/cheats/76A489F3BD3642FA.txt
 This has only been tested on an emulator. A stock console can't load patches or cheats, and modding a console can get it banned from online services.
 
 ## How it works
-The `.ips` patch is applied when the game loads. It changes five small pieces of the game's code, and each one only acts while an on/off byte is set:
+The `.ips` patch is applied when the game loads. It changes five small pieces of the game's code, and each one only acts while a "which form" value is set (0 means off, 70 is Ditto):
 
 1. The player's "desired form" reports Ditto.
 2. Writes to the stored desired form are forced to Ditto.
@@ -44,4 +44,6 @@ The `.ips` patch is applied when the game loads. It changes five small pieces of
 4. Requests to switch back to the normal form are ignored.
 5. The player's "something is in the way" animation check always passes, so Ditto's idle never starts the stand-up stretch.
 
-The cheat file only writes data. ZL + D-pad Left sets the byte and asks the game to switch to Ditto. ZL + D-pad Right clears it.
+The cheat file only writes data. ZL + D-pad Left sets the value to Ditto and asks the game to switch. ZL + D-pad Right clears it.
+
+The same patch file is shared with the Play as Resident mod, so both can be ticked at once.

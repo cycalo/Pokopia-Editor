@@ -40,6 +40,14 @@ class ModsPage(Page):
                 card.actions.addWidget(W.Pill('Experimental', 'pillwarn'))
             for combo, does in m.get('controls', []):
                 card.body.addWidget(W.label(f'<b>{combo}</b> — {does}'))
+            card.pick = None
+            if mod.choice:
+                card.pick = QComboBox()
+                card.pick.addItems(list(mod.options))
+                card.pick.setCurrentText(mod.option)
+                card.pick.currentTextChanged.connect(lambda text, mod=mod: self.pick_option(mod, text))
+                row = W.hbox(W.label(mod.choice['label'] + ':'), card.pick, None)
+                card.body.addLayout(row)
             for issue in m.get('known_issues', []):
                 card.body.addWidget(W.label('Known issue: ' + issue, 'warn', wrap=True))
             card.body.addWidget(W.label(f'Made for Pokopia {m.get("game_update", "")} (build {mod.build_id[:16]}). '
@@ -96,9 +104,21 @@ class ModsPage(Page):
             self.app.toast('That folder does not exist yet. It is created when you install a mod.', 'info')
 
     # ---------- mod actions ----------
-    def refresh(self):
+    def pick_option(self, mod, text):
+        mod.option = text
+        self.refresh(sync_picks=False)
+
+    def refresh(self, sync_picks=True):
         d = self.load_dir()
         for card in self.cards:
+            if sync_picks and card.pick is not None and d:
+                # show the option the installed copy was made for
+                have = card.mod.installed_option(d)
+                if have:
+                    card.mod.option = have
+                    card.pick.blockSignals(True)
+                    card.pick.setCurrentText(have)
+                    card.pick.blockSignals(False)
             st = card.mod.status(d) if d else 'missing'
             text, kind = {'installed': ('Installed', 'pillok'), 'outdated': ('Different version installed', 'pillwarn'),
                           'missing': ('Not installed', 'pill')}[st]
