@@ -1,0 +1,23 @@
+{
+  "id": "play-as-resident",
+  "name": "Play as Resident",
+  "version": "0.1",
+  "status": "experimental",
+  "summary": "Turn into a resident Pokémon and walk around as it.",
+  "controls": [["ZL + D-pad Up", "Turn into the chosen Pokémon"], ["ZL + D-pad Down", "Turn back into your character"]],
+  "known_issues": ["Only Piplup has been tested. Other Pokémon are listed from the game's data and may not all work."],
+  "game_update": "2.0.0 (update 655360)",
+  "title_id": "0400A3A01EE4C000",
+  "build_id": "76A489F3BD3642FA5E18BD83D32C98BACC5F7D0E",
+  "files": {
+    "exefs": "76A489F3BD3642FA5E18BD83D32C98BACC5F7D0E.ips",
+    "cheats": "76A489F3BD3642FA.txt"
+  },
+  "choice": {
+    "label": "Pokémon",
+    "options": "pokemon.json",
+    "default": "Piplup",
+    "file": "cheats",
+    "default_value": 114
+  }
+}

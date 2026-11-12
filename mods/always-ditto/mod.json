@@ -1,7 +1,7 @@
 {
   "id": "always-ditto",
   "name": "Always Ditto",
-  "version": "0.4",
+  "version": "0.5",
   "status": "experimental",
   "summary": "Turn into Ditto anywhere, not only in small spaces.",
   "controls": [["ZL + D-pad Left", "Ditto mode on (turns you into Ditto)"], ["ZL + D-pad Right", "Ditto mode off (turns you back)"]],
