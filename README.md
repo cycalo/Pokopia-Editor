@@ -69,6 +69,10 @@ If your save isn't found, click **Open → Browse for a folder**.
 
 ## 🧩 Mods
 
+<img src="docs/transform_demo.gif" width="600" alt="Turning into Ditto, then Piplup, then back into the player">
+
+Always Ditto and Play as Resident, one after the other.
+
 ### Always Ditto <sub>(experimental)</sub>
 
 Turn into Ditto anywhere, not only in small spaces.
