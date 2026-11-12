@@ -67,6 +67,28 @@ If your save isn't found, click **Open → Browse for a folder**.
 
 ---
 
+## 🧩 Mods
+
+### Always Ditto <sub>(experimental)</sub>
+
+Turn into Ditto anywhere, not only in small spaces.
+
+| Hold | Does |
+|---|---|
+| **ZL + D-pad Left** | Ditto mode on: you turn into Ditto and stay Ditto |
+| **ZL + D-pad Right** | Ditto mode off: you turn back into your character |
+
+**Only for Pokopia 2.0.0, update 655360.** On other versions the patch is not applied.
+
+Install it from the editor's **Mods** page, or download it on its own:
+
+- [**`AlwaysDitto-emulator.zip`**](https://github.com/cycalo/Pokopia-Editor/releases/latest/download/AlwaysDitto-emulator.zip): unzip into your emulator's `load` folder, then tick **Always Ditto** under the game's Properties → Add-Ons
+- [**`AlwaysDitto-SD-card.zip`**](https://github.com/cycalo/Pokopia-Editor/releases/latest/download/AlwaysDitto-SD-card.zip): unzip onto the SD card for Atmosphère-style custom firmware (untested)
+
+Use the combos only once you're in the world. Details are in [mods/always-ditto](mods/always-ditto/).
+
+---
+
 ## 🛡️ Your save is safe
 
 - 💾 **Automatic backup** before every save, in `Documents\Pokopia_Save_Backups`
