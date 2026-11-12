@@ -118,13 +118,12 @@ class App(QMainWindow):
     def write_settings(self):
         if not self.persist:
             return
-        d = dict(self.settings)
-        d.update(theme=T.NAME, last_folder=self.save.folder if self.save else self.settings.get('last_folder'),
-                 qt_geometry=bytes(self.saveGeometry().toBase64()).decode('ascii'))
+        self.settings['theme'] = T.NAME
+        self.settings['last_folder'] = self.save.folder if self.save else self.settings.get('last_folder')
+        self.settings['qt_geometry'] = bytes(self.saveGeometry().toBase64()).decode('ascii')
         try:
             with open(SETTINGS, 'w', encoding='utf-8') as f:
-                json.dump(d, f, indent=1)
-            self.settings = d
+                json.dump(self.settings, f, indent=1)
         except OSError:
             pass
 

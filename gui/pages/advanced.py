@@ -87,7 +87,7 @@ class AdvancedPage(Page):
         lay.setSpacing(14)
         upd = W.Card('Updates', None, T.G['bell'])
         row = W.ToggleRow('Check for new versions on GitHub',
-                          'Once a day at startup. Only asks GitHub for the latest release; nothing about you or your save is sent.')
+                          'Checked each time the app starts. Only asks GitHub for the latest release; nothing about you or your save is sent.')
         row.toggle.set_quiet(self.app.settings.get('check_updates', True))
         row.toggle.toggled.connect(self.app.set_check_updates)
         upd.body.addWidget(row)

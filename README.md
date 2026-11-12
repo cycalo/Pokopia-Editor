@@ -44,7 +44,7 @@ If your save isn't found, click **Open → Browse for a folder**.
 | 🗺️ | **Island Map** | See each island from above with everything you've placed. Export it as a PNG |
 | 📷 | **Photos** | Browse your in-game album and export full-size photos |
 | 🛟 | **Backups** | Make, compare and restore backups |
-| 🧩 | **Mods** | Install game mods into your emulator, or save them for an SD card. See [mods/](mods/) |
+| 🧩 | **Mods** | Install Always Ditto and Play as Resident into your emulator, or save them for an SD card. See [mods/](mods/) |
 
 <table>
   <tr>
@@ -86,6 +86,23 @@ Install it from the editor's **Mods** page, or download it on its own:
 - [**`AlwaysDitto-SD-card.zip`**](https://github.com/cycalo/Pokopia-Editor/releases/latest/download/AlwaysDitto-SD-card.zip): unzip onto the SD card for Atmosphère-style custom firmware (untested)
 
 Use the combos only once you're in the world. Details are in [mods/always-ditto](mods/always-ditto/).
+
+### Play as Resident <sub>(experimental)</sub>
+
+Turn into a resident Pokémon and walk around as it. On the editor's **Mods** page, pick the Pokémon from the list, then press **Install**. The installed cheat is written for that Pokémon.
+
+| Hold | Does |
+|---|---|
+| **ZL + D-pad Up** | Turn into the chosen Pokémon and stay that way |
+| **ZL + D-pad Down** | Turn back into your character |
+
+**Only for Pokopia 2.0.0, update 655360.** On other versions the patch is not applied.
+
+The list starts on **Piplup**, which is the one that has been tested. The other Pokémon are taken from the game's data and may not all work. Restart the game after you change the Pokémon.
+
+It ships the same patch as Always Ditto 0.5 and uses its own button combos, so both can be ticked at once. An older Always Ditto 0.4 patch is not compatible.
+
+Details are in [mods/play-as-resident](mods/play-as-resident/).
 
 ---
 
