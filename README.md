@@ -154,3 +154,6 @@ The exe stores its settings in `%APPDATA%\Pokopia Editor`.
 <div align="center">
 <sub>Code released under the <a href="LICENSE">MIT License</a>. The license covers the editor's code only: Pokémon names, icons and other game assets belong to Nintendo, Game Freak and The Pokémon Company. Fan-made tool, not affiliated with them.</sub>
 </div>
+<div align="center">
+<sub>Island map based on https://github.com/berichan/PokoHex</sub>
+</div>
