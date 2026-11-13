@@ -101,6 +101,8 @@ Want the mod without the editor? Download it on its own:
 - [**`PlayAsPokemon-emulator.zip`**](https://github.com/cycalo/Pokopia-Editor/releases/latest/download/z-PlayAsPokemon-emulator.zip): unzip into your emulator's `load` folder, then tick **Play as Pokemon** under the game's Properties → Add-Ons
 - [**`PlayAsPokemon-SD-card.zip`**](https://github.com/cycalo/Pokopia-Editor/releases/latest/download/z-PlayAsPokemon-SD-card.zip): unzip onto the SD card for Atmosphère-style custom firmware (untested)
 
+Without the editor you turn into Ditto. To pick another Pokémon, change one number in the cheat file: [how to, with every Pokémon's code](mods/play-as-pokemon/README-standalone.md#change-the-pokémon).
+
 Details are in [mods/play-as-pokemon](mods/play-as-pokemon/).
 
 ---

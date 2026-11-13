@@ -1,7 +1,8 @@
 """Build the standalone mod downloads for a release: dist/z-<Mod>-emulator.zip and dist/z-<Mod>-SD-card.zip.
 
 Usage:  py tools\\make_mod_zips.py
-Each zip holds the mod's files in that layout (default option) plus its README.
+Each zip holds the mod's files in that layout (default option) plus its README: README-standalone.md when the
+mod has one (written for people without the editor), otherwise README.md.
 """
 import os, sys, tempfile, zipfile
 
@@ -18,5 +19,8 @@ for mod in pm.list_mods():
         with tempfile.TemporaryDirectory() as tmp, zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
             for path in mod.write(tmp, layout):
                 z.write(path, os.path.relpath(path, tmp).replace(os.sep, '/'))
-            z.write(os.path.join(mod.folder, 'README.md'), f'{mod.name} README.md')
+            readme = os.path.join(mod.folder, 'README-standalone.md')
+            if not os.path.exists(readme):
+                readme = os.path.join(mod.folder, 'README.md')
+            z.write(readme, f'{mod.name} README.md')
         print(out)
