@@ -1,8 +1,9 @@
 import os
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import QComboBox, QFileDialog, QInputDialog, QMessageBox, QVBoxLayout
+from PySide6.QtWidgets import QComboBox, QCompleter, QFileDialog, QInputDialog, QMessageBox, QVBoxLayout
 
+import pokopia_live as pl
 import pokopia_mods as pm
 from gui import theme as T
 from gui import widgets as W
@@ -17,6 +18,7 @@ class ModsPage(Page):
     def build(self):
         self.mods = pm.list_mods()
         self.cards = []
+        self.game = None  # pl.Game while connected to a running game
         lay = QVBoxLayout(self.root)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(14)
@@ -59,12 +61,78 @@ class ModsPage(Page):
             card.b_remove = W.button('Uninstall', T.G['delete'], lambda mod=mod: self.uninstall(mod), danger=True)
             card.body.addLayout(W.hbox(card.b_install, card.b_remove,
                                        W.button('Save as…', T.G['saveas'], lambda mod=mod: self.save_as(mod)), None))
+            if mod.any_label:
+                self.build_live(card, mod)
             card.mod = mod
             self.cards.append(card)
             lay.addWidget(card)
         if not self.mods:
             lay.addWidget(W.label('No mods were found next to the program.', 'muted'))
         lay.addStretch(1)
+
+    # ---------- change form while playing ----------
+    def build_live(self, card, mod):
+        card.body.addWidget(W.hline())
+        card.body.addWidget(W.label('Change Pokémon while playing', 'h3'))
+        card.body.addWidget(W.label(
+            'With the game running in your emulator on this PC, pick a Pokémon and press Transform. No restart '
+            f'is needed. If you installed "{mod.any_label}", ZL + D-pad Up also turns you into the last Pokémon '
+            'you picked here.', 'small', wrap=True))
+        names = list(mod.numbers)
+        card.live = QComboBox()
+        card.live.setEditable(True)
+        card.live.setInsertPolicy(QComboBox.NoInsert)
+        card.live.addItems(names)
+        comp = QCompleter(names, card.live)
+        comp.setCaseSensitivity(Qt.CaseInsensitive)
+        comp.setFilterMode(Qt.MatchContains)
+        card.live.setCompleter(comp)
+        card.live.setMinimumWidth(190)
+        last = self.app.settings.get('live_pokemon')
+        card.live.setCurrentText(last if last in mod.numbers else
+                                 mod.option if mod.option in mod.numbers else mod.choice['default'])
+        card.live.lineEdit().returnPressed.connect(lambda mod=mod, card=card: self.live_transform(mod, card))
+        card.live_state = W.label('', 'small', wrap=True)
+        card.body.addLayout(W.hbox(
+            card.live,
+            W.button('Transform', T.G['star'], lambda: self.live_transform(mod, card), accent=True),
+            W.button('Turn back', None, lambda: self.live_transform(mod, card, back=True)), None))
+        card.body.addWidget(card.live_state)
+
+    def live_game(self, mod):
+        """The running game with this mod's patch loaded; raises pl.LiveError with the reason otherwise."""
+        if self.game is None or not self.game.alive():
+            if self.game:
+                self.game.close()
+            self.game = None
+            self.game = pl.connect()
+        with open(mod.source('exefs'), 'rb') as f:
+            if not self.game.patch_loaded(f.read()):
+                raise pl.LiveError(f'The game is running without the current {mod.name} patch. Install or update '
+                                   'the mod, tick it under Properties → Add-Ons, then restart the game.')
+        return self.game
+
+    def live_transform(self, mod, card, back=False):
+        name = card.live.currentText().strip()
+        match = next((n for n in mod.numbers if n.lower() == name.lower()), None)
+        try:
+            if not back and match is None:
+                raise pl.LiveError(f'"{name}" is not in the list.')
+            game = self.live_game(mod)
+            if match is not None:
+                game.select(mod.numbers[match])
+            game.transform(0 if back else mod.numbers[match])
+        except (pl.LiveError, OSError) as e:
+            W.set_role(card.live_state, 'warn')
+            card.live_state.setText(str(e))
+            return
+        if match is not None:
+            card.live.setCurrentText(match)
+            if self.app.settings.get('live_pokemon') != match:
+                self.app.settings['live_pokemon'] = match
+                self.app.write_settings()
+        W.set_role(card.live_state, 'small')
+        card.live_state.setText('Turned back into your character.' if back else f'You are now {match}.')
 
     # ---------- emulator folder ----------
     def fill_where(self, select=None):

@@ -23,11 +23,22 @@ class Mod:
         # Optional "choice": one file is rewritten for the option the user picks (e.g. which Pokémon).
         # The shipped file is written for default_value; every 4-hex-digit occurrence of it is swapped.
         self.choice = m.get('choice')
-        self.options, self.option = {}, None
+        # Optional choice["any"]: an extra option with its own file, which reads the number from the game's
+        # memory instead (pokopia_live sets it while the game runs). Its label maps to None in `options`.
+        self.options, self.option, self.any_label = {}, None, None
         if self.choice:
             with open(os.path.join(folder, self.choice['options']), encoding='utf-8') as f:
-                self.options = json.load(f)  # label -> number
+                numbers = json.load(f)  # label -> number
+            if self.choice.get('any'):
+                self.any_label = self.choice['any']['label']
+                self.options[self.any_label] = None
+            self.options.update(numbers)
             self.option = self.choice['default']
+
+    @property
+    def numbers(self):
+        """label -> number, without the "any" option."""
+        return {k: v for k, v in self.options.items() if v is not None}
 
     def source(self, kind):
         return os.path.join(self.folder, 'files', self.files[kind])
@@ -37,9 +48,13 @@ class Mod:
 
     def content(self, kind):
         """Bytes to install for one file, with the chosen option applied."""
+        chosen = self.choice and kind == self.choice['file']
+        if chosen and self.any_label and self.option == self.any_label:
+            with open(os.path.join(self.folder, 'files', self.choice['any']['file']), 'rb') as f:
+                return f.read()
         with open(self.source(kind), 'rb') as f:
             data = f.read()
-        if self.choice and kind == self.choice['file'] and self.option in self.options:
+        if chosen and self.options.get(self.option) is not None:
             old, new = self._token(self.choice['default_value']), self._token(self.options[self.option])
             data = data.replace(old.encode(), new.encode())
         return data

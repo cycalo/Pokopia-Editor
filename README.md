@@ -104,6 +104,8 @@ Turn into a Pokémon and walk around as it, whether or not it lives in your town
 
 The list starts on **Piplup**. Pokémon that live in your town, plus Espeon, Umbreon, Jolteon, Flareon and Vaporeon, have been tested. The rest are listed from the game's data and may not all work. Restart the game after you change the Pokémon.
 
+On Windows, with the game running in your emulator, you can also change Pokémon without restarting: pick one under **Change Pokémon while playing** on the Mods page and press **Transform**. Install the mod with **Any (choose while playing)** selected to make ZL + D-pad Up use that pick as well.
+
 It ships the same patch as Always Ditto 0.6 and uses its own button combos, so both can be ticked at once. An older Always Ditto 0.4 patch is not compatible.
 
 Details are in [mods/play-as-resident](mods/play-as-resident/).

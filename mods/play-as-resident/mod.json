@@ -1,7 +1,7 @@
 {
   "id": "play-as-resident",
   "name": "Play as Resident",
-  "version": "0.6",
+  "version": "0.7",
   "status": "experimental",
   "summary": "Turn into a Pokémon and walk around as it, whether or not it lives in your town.",
   "controls": [["ZL + D-pad Up", "Turn into the chosen Pokémon"], ["ZL + D-pad Down", "Turn back into your character"]],
@@ -18,6 +18,7 @@
     "options": "pokemon.json",
     "default": "Piplup",
     "file": "cheats",
-    "default_value": 114
+    "default_value": 114,
+    "any": {"label": "Any (choose while playing)", "file": "76A489F3BD3642FA.any.txt"}
   }
 }

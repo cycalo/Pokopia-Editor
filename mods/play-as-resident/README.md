@@ -9,6 +9,14 @@ Turn into a Pokémon and walk around as it. It doesn't have to live in your town
 
 The files in this folder are set up for **Piplup**. To pick another Pokémon, use the Pokopia Editor's **Mods** page: choose it from the list and press Install. Restart the game after changing it.
 
+## Change Pokémon while playing (emulator on Windows)
+
+With the mod installed and the game running, the editor's **Mods** page can change your Pokémon on the spot: under **Change Pokémon while playing**, pick one and press **Transform**. No restart is needed. **Turn back** returns you to your character.
+
+To make the button combo follow that choice too, pick **Any (choose while playing)** in the Pokémon list before you press Install. ZL + D-pad Up then turns you into the last Pokémon you picked in the editor, and does nothing until you have picked one. That cheat file is `76A489F3BD3642FA.any.txt`.
+
+This works by writing to the running emulator's memory, so it needs a Yuzu-family emulator on the same Windows PC as the editor. It does not work on a console, and it never touches your save.
+
 A Pokémon that doesn't live in your town appears a fraction of a second after the transform, because the game has to load its animations first.
 
 **Known issue:** pokémon that live in your town, plus Espeon, Umbreon, Jolteon, Flareon and Vaporeon, have been tested. The rest are listed from the game's data and may not all work.
@@ -40,6 +48,6 @@ atmosphere/contents/0400A3A01EE4C000/cheats/76A489F3BD3642FA.txt
 On an SD card both mods use the same cheat file path. To use both, paste the contents of one cheat file under the other in a single file.
 
 ## How it works
-The game identifies every character, including you, by a character number: your human form is 1, Ditto is 70, Piplup is 114. The `.ips` patch makes the game hold whatever number is stored in a "which form" value (0 means off). The cheat file writes that value and asks the game to switch you to it. `pokemon.json` lists the number for each Pokémon.
+The game identifies every character, including you, by a character number: your human form is 1, Ditto is 70, Piplup is 114. The `.ips` patch makes the game hold whatever number is stored in a "which form" value (0 means off). The cheat file writes that value and asks the game to switch you to it. `pokemon.json` lists the number for each Pokémon. The "Any" cheat reads the number from a second value, which the editor sets while the game runs.
 
 The game only loads a Pokémon's animations while that Pokémon lives in your town, and a model without animations is drawn as nothing. So the patch also loads the animations of the Pokémon you turn into, then repeats the form change once they are ready.
