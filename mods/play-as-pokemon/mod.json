@@ -1,0 +1,42 @@
+{
+  "id": "play-as-pokemon",
+  "name": "Play as Pokemon",
+  "version": "1.0",
+  "status": "experimental",
+  "summary": "Turn into Ditto or any other Pokémon and walk around as it.",
+  "controls": [
+    [
+      "ZL + D-pad Left",
+      "Turn into the chosen Pokémon"
+    ],
+    [
+      "ZL + D-pad Right",
+      "Turn back into your character"
+    ]
+  ],
+  "known_issues": [
+    "Ditto, Pokémon that live in your town, and Espeon, Umbreon, Jolteon, Flareon and Vaporeon have been tested. The rest are listed from the game's data and may not all work."
+  ],
+  "game_update": "2.0.0 (update 655360)",
+  "title_id": "0400A3A01EE4C000",
+  "build_id": "76A489F3BD3642FA5E18BD83D32C98BACC5F7D0E",
+  "files": {
+    "exefs": "76A489F3BD3642FA5E18BD83D32C98BACC5F7D0E.ips",
+    "cheats": "76A489F3BD3642FA.txt"
+  },
+  "replaces": [
+    "Always Ditto",
+    "Play as Resident"
+  ],
+  "choice": {
+    "label": "Pokémon",
+    "options": "pokemon.json",
+    "default": "Any (choose while playing)",
+    "file": "cheats",
+    "default_value": 114,
+    "any": {
+      "label": "Any (choose while playing)",
+      "file": "76A489F3BD3642FA.any.txt"
+    }
+  }
+}

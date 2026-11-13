@@ -76,8 +76,8 @@ class ModsPage(Page):
         card.body.addWidget(W.label('Change Pokémon while playing', 'h3'))
         card.body.addWidget(W.label(
             'With the game running in your emulator on this PC, pick a Pokémon and press Transform. No restart '
-            f'is needed. If you installed "{mod.any_label}", ZL + D-pad Up also turns you into the last Pokémon '
-            'you picked here.', 'small', wrap=True))
+            f'is needed. If you installed "{mod.any_label}", {mod.meta["controls"][0][0]} also turns you into the '
+            'last Pokémon you picked here, or Ditto if you have not picked one.', 'small', wrap=True))
         names = list(mod.numbers)
         card.live = QComboBox()
         card.live.setEditable(True)
@@ -90,7 +90,8 @@ class ModsPage(Page):
         card.live.setMinimumWidth(190)
         last = self.app.settings.get('live_pokemon')
         card.live.setCurrentText(last if last in mod.numbers else
-                                 mod.option if mod.option in mod.numbers else mod.choice['default'])
+                                 mod.option if mod.option in mod.numbers else
+                                 'Ditto' if 'Ditto' in mod.numbers else names[0])
         card.live.lineEdit().returnPressed.connect(lambda mod=mod, card=card: self.live_transform(mod, card))
         card.live_state = W.label('', 'small', wrap=True)
         card.body.addLayout(W.hbox(
@@ -188,7 +189,9 @@ class ModsPage(Page):
                     card.pick.setCurrentText(have)
                     card.pick.blockSignals(False)
             st = card.mod.status(d) if d else 'missing'
-            text, kind = {'installed': ('Installed', 'pillok'), 'outdated': ('Different version installed', 'pillwarn'),
+            old = bool(d and card.mod.old_installed(d))
+            text, kind = {'installed': ('Installed', 'pillok'),
+                          'outdated': ('Older mod installed' if old else 'Different version installed', 'pillwarn'),
                           'missing': ('Not installed', 'pill')}[st]
             card.pill.set(text, kind)
             card.pill.setMinimumWidth(card.pill.sizeHint().width())
@@ -200,12 +203,14 @@ class ModsPage(Page):
         d = self.load_dir()
         if not d:
             return self.app.toast('Choose your emulator\'s "load" folder first.', 'err')
+        old = sorted({os.path.basename(os.path.dirname(os.path.dirname(p))) for p in mod.old_installed(d)})
         try:
             mod.write(d)
         except OSError as e:
             return self.app.toast(f'Could not install {mod.name}:\n{e}', 'err')
         self.refresh()
-        self.app.toast(f'{mod.name} installed. Restart the game and tick it under Properties → Add-Ons.')
+        gone = f' It replaces {" and ".join(old)}, now removed.' if old else ''
+        self.app.toast(f'{mod.name} installed.{gone}\nRestart the game and tick it under Properties → Add-Ons.')
 
     def uninstall(self, mod):
         d = self.load_dir()

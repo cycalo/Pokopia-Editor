@@ -20,6 +20,9 @@ class Mod:
         m = self.meta
         self.id, self.name, self.title_id, self.build_id = m['id'], m['name'], m['title_id'], m['build_id']
         self.files = m['files']  # kind -> file name; kinds: exefs, cheats
+        # Optional "replaces": names of older mods this one takes over from. They used the same file names and
+        # the same button combos, so installing this mod removes their copies.
+        self.replaces = m.get('replaces', [])
         # Optional "choice": one file is rewritten for the option the user picks (e.g. which Pokémon).
         # The shipped file is written for default_value; every 4-hex-digit occurrence of it is swapped.
         self.choice = m.get('choice')
@@ -90,8 +93,33 @@ class Mod:
                 out[kind] = os.path.join(root, 'atmosphere', 'contents', self.title_id, kind, fn)
         return out
 
+    def old_targets(self, root, layout='emulator'):
+        """Paths where the mods named in "replaces" kept their files."""
+        out = []
+        for name in self.replaces:
+            for kind, fn in self.files.items():
+                if layout == 'emulator':
+                    out.append(os.path.join(root, self.title_id, name, kind, fn))
+                elif kind == 'exefs':  # on an SD card the cheat file path is shared, only the patch folder differs
+                    out.append(os.path.join(root, 'atmosphere', 'exefs_patches', name, fn))
+        return out
+
+    def old_installed(self, root, layout='emulator'):
+        return [p for p in self.old_targets(root, layout) if os.path.isfile(p)]
+
+    def remove_old(self, root, layout='emulator'):
+        removed = self.old_installed(root, layout)
+        for p in removed:
+            os.remove(p)
+            _rmdir_if_empty(os.path.dirname(p))
+            if layout == 'emulator':
+                _rmdir_if_empty(os.path.dirname(os.path.dirname(p)))
+        return removed
+
     def status(self, load_dir):
-        """'installed', 'outdated' (different files there), or 'missing'."""
+        """'installed', 'outdated' (different files there, or an older mod it replaces), or 'missing'."""
+        if self.old_installed(load_dir):
+            return 'outdated'
         states = []
         for kind, dst in self.targets(load_dir).items():
             if not os.path.isfile(dst):
@@ -110,11 +138,12 @@ class Mod:
             with open(dst, 'wb') as f:
                 f.write(self.content(kind))
             written.append(dst)
+        self.remove_old(root, layout)
         return written
 
     def remove(self, load_dir):
         """Delete this mod's files from an emulator load folder, then its folders if they are left empty."""
-        removed = []
+        removed = self.remove_old(load_dir)
         for dst in self.targets(load_dir).values():
             if os.path.isfile(dst):
                 os.remove(dst)

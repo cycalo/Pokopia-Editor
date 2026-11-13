@@ -44,7 +44,7 @@ If your save isn't found, click **Open → Browse for a folder**.
 | 🗺️ | **Island Map** | See each island from above with everything you've placed. Export it as a PNG |
 | 📷 | **Photos** | Browse your in-game album and export full-size photos |
 | 🛟 | **Backups** | Make, compare and restore backups |
-| 🧩 | **Mods** | Install Always Ditto and Play as Resident into your emulator, or save them for an SD card. See [mods/](mods/) |
+| 🧩 | **Mods** | Play as Ditto or any other Pokémon, and change Pokémon while the game is running. See [mods/](mods/) |
 
 <table>
   <tr>
@@ -69,46 +69,35 @@ If your save isn't found, click **Open → Browse for a folder**.
 
 ## 🧩 Mods
 
-<img src="docs/transform_demo.gif" width="600" alt="Turning into Ditto, then Piplup, then back into the player">
+<img src="docs/transform_demo.gif" width="600" alt="Turning into Mewtwo, Lugia, Heracross and Flareon, then back into the player">
 
-Always Ditto and Play as Resident, one after the other.
+### Play as Pokemon <sub>(experimental)</sub>
 
-### Always Ditto <sub>(experimental)</sub>
-
-Turn into Ditto anywhere, not only in small spaces.
+Turn into Ditto or any other Pokémon and walk around as it. It doesn't have to live in your town.
 
 | Hold | Does |
 |---|---|
-| **ZL + D-pad Left** | Ditto mode on: you turn into Ditto and stay Ditto |
-| **ZL + D-pad Right** | Ditto mode off: you turn back into your character |
+| **ZL + D-pad Left** | Turn into the chosen Pokémon and stay that way |
+| **ZL + D-pad Right** | Turn back into your character |
+
+1. Open the editor's **Mods** page and press **Install**.
+2. Restart the game and tick **Play as Pokemon** under its Properties → Add-Ons.
+3. With the game running, pick a Pokémon under **Change Pokémon while playing** and press **Transform**. No restart is needed.
+
+The button combo uses the Pokémon you picked last, or Ditto until you pick one. Changing Pokémon while playing needs the emulator and the editor on the same Windows PC. On a console, choose one Pokémon in the list before you install instead.
 
 **Only for Pokopia 2.0.0, update 655360.** On other versions the patch is not applied.
 
-Install it from the editor's **Mods** page, or download it on its own:
+Play as Pokemon replaces the older **Always Ditto** and **Play as Resident** mods. If you have them, press **Update** on the Mods page and the editor removes them for you.
 
-- [**`AlwaysDitto-emulator.zip`**](https://github.com/cycalo/Pokopia-Editor/releases/latest/download/AlwaysDitto-emulator.zip): unzip into your emulator's `load` folder, then tick **Always Ditto** under the game's Properties → Add-Ons
-- [**`AlwaysDitto-SD-card.zip`**](https://github.com/cycalo/Pokopia-Editor/releases/latest/download/AlwaysDitto-SD-card.zip): unzip onto the SD card for Atmosphère-style custom firmware (untested)
+Ditto, Pokémon that live in your town, and a handful of others have been tested. The rest are taken from the game's data and may not all work.
 
-Use the combos only once you're in the world. Details are in [mods/always-ditto](mods/always-ditto/).
+Want the mod without the editor? Download it on its own:
 
-### Play as Resident <sub>(experimental)</sub>
+- [**`PlayAsPokemon-emulator.zip`**](https://github.com/cycalo/Pokopia-Editor/releases/latest/download/z-PlayAsPokemon-emulator.zip): unzip into your emulator's `load` folder, then tick **Play as Pokemon** under the game's Properties → Add-Ons
+- [**`PlayAsPokemon-SD-card.zip`**](https://github.com/cycalo/Pokopia-Editor/releases/latest/download/z-PlayAsPokemon-SD-card.zip): unzip onto the SD card for Atmosphère-style custom firmware (untested)
 
-Turn into a Pokémon and walk around as it, whether or not it lives in your town. On the editor's **Mods** page, pick the Pokémon from the list, then press **Install**. The installed cheat is written for that Pokémon.
-
-| Hold | Does |
-|---|---|
-| **ZL + D-pad Up** | Turn into the chosen Pokémon and stay that way |
-| **ZL + D-pad Down** | Turn back into your character |
-
-**Only for Pokopia 2.0.0, update 655360.** On other versions the patch is not applied.
-
-The list starts on **Piplup**. Pokémon that live in your town, plus Espeon, Umbreon, Jolteon, Flareon and Vaporeon, have been tested. The rest are listed from the game's data and may not all work. Restart the game after you change the Pokémon.
-
-On Windows, with the game running in your emulator, you can also change Pokémon without restarting: pick one under **Change Pokémon while playing** on the Mods page and press **Transform**. Install the mod with **Any (choose while playing)** selected to make ZL + D-pad Up use that pick as well.
-
-It ships the same patch as Always Ditto 0.6 and uses its own button combos, so both can be ticked at once. An older Always Ditto 0.4 patch is not compatible.
-
-Details are in [mods/play-as-resident](mods/play-as-resident/).
+Details are in [mods/play-as-pokemon](mods/play-as-pokemon/).
 
 ---
 
