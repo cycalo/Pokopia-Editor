@@ -24,13 +24,9 @@ The files in this folder are the "Any" setup: `76A489F3BD3642FA.any.txt` is the 
 
 A Pokémon that doesn't live in your town appears a fraction of a second after the transform, because the game has to load its animations first.
 
-**Known issue:** Ditto, Pokémon that live in your town, and Espeon, Umbreon, Jolteon, Flareon and Vaporeon have been tested. The rest are listed from the game's data and may not all work.
-
 ## Flying
 
 Pokémon that hover or fly in the game (Charizard, Scyther, Noctowl, Venomoth, Volbeat, Combee, Vespiquen and others) can fly when you are one of them. You get their own hover and flying animations. Let go of both buttons to hover in place. Other Pokémon ignore the fly buttons.
-
-Flying has been tested as Charizard, Scyther and Noctowl.
 
 ## Install
 

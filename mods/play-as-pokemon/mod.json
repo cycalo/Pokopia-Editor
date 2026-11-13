@@ -26,10 +26,7 @@
       "Drop out of the air"
     ]
   ],
-  "known_issues": [
-    "Ditto, Pokémon that live in your town, and Espeon, Umbreon, Jolteon, Flareon and Vaporeon have been tested. The rest are listed from the game's data and may not all work.",
-    "Flying has been tested as Charizard, Scyther and Noctowl."
-  ],
+  "known_issues": [],
   "game_update": "2.0.0 (update 655360)",
   "title_id": "0400A3A01EE4C000",
   "build_id": "76A489F3BD3642FA5E18BD83D32C98BACC5F7D0E",

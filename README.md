@@ -96,8 +96,6 @@ Play as Pokemon replaces the older **Always Ditto** and **Play as Resident** mod
 
 Pokémon that hover or fly in the game, such as Charizard, Scyther and Noctowl, can fly with their own hover and flying animations. Let go of both buttons to hover in place.
 
-Ditto, Pokémon that live in your town, and a handful of others have been tested. Flying has been tested as Charizard, Scyther and Noctowl. The rest are taken from the game's data and may not all work.
-
 Want the mod without the editor? Download it on its own:
 
 - [**`PlayAsPokemon-emulator.zip`**](https://github.com/cycalo/Pokopia-Editor/releases/latest/download/z-PlayAsPokemon-emulator.zip): unzip into your emulator's `load` folder, then tick **Play as Pokemon** under the game's Properties → Add-Ons
