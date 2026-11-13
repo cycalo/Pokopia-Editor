@@ -20,6 +20,8 @@ This mod replaces **Always Ditto** and **Play as Resident**. Remove those two be
 
 **A fixed Pokémon.** On the Mods page, change the Pokémon list from **Any (choose while playing)** to one Pokémon and press Install. The button combo then always turns you into that Pokémon. Restart the game after changing it. Use this on a console, where the editor can't reach the running game.
 
+**Without the editor.** The standalone zips turn you into Ditto. To pick another Pokémon, open the cheat file `76A489F3BD3642FA.txt` in Notepad, find the line `020F0000 03D14C06 00000046`, and replace `00000046` with your Pokémon's code. [README-standalone.md](README-standalone.md#pokémon-codes) lists the code for every Pokémon. Restart the game after changing it.
+
 The files in this folder are the "Any" setup: `76A489F3BD3642FA.any.txt` is the cheat file it installs, and `76A489F3BD3642FA.txt` is the template for a fixed Pokémon (written for Piplup).
 
 A Pokémon that doesn't live in your town appears a fraction of a second after the transform, because the game has to load its animations first.
@@ -31,6 +33,13 @@ Pokémon that hover or fly in the game (Charizard, Scyther, Noctowl, Venomoth, V
 ## Install
 
 The easiest way is the Pokopia Editor's **Mods** page, which installs it straight into your emulator or saves it in the right folder layout.
+
+Without the editor, download a ready-made zip from the [latest release](https://github.com/cycalo/Pokopia-Editor/releases/latest). Each zip includes a short README ([README-standalone.md](README-standalone.md)) that explains how to install it and change the Pokémon.
+
+- [**`z-PlayAsPokemon-emulator.zip`**](https://github.com/cycalo/Pokopia-Editor/releases/latest/download/z-PlayAsPokemon-emulator.zip): unzip into your emulator's `load` folder
+- [**`z-PlayAsPokemon-SD-card.zip`**](https://github.com/cycalo/Pokopia-Editor/releases/latest/download/z-PlayAsPokemon-SD-card.zip): unzip onto the root of the SD card
+
+To copy the files by hand instead, use these paths.
 
 ### Emulator (Eden, Yuzu and forks)
 Copy the files into the emulator's `load` folder like this, then make sure **Play as Pokemon** is ticked in the game's Properties → Add-Ons:
@@ -60,7 +69,6 @@ The `.ips` patch is applied when the game loads. Each change only acts while a "
 3. Requests to switch back to the normal form are ignored.
 4. The player's "something is in the way" animation check always passes, so Ditto's idle never starts the stand-up stretch.
 5. The game only loads a Pokémon's animations while that Pokémon lives in your town, and a model without animations is drawn as nothing. So the patch loads the animations of the Pokémon you turn into, then repeats the form change once they are ready.
-
 6. Flying Pokémon have a hover motion, and the game applies no gravity while it plays. Every frame the patch looks at the fly buttons: ZR switches you to the hover motion and sets an upward speed, ZL sets a downward speed, and landing switches you back to the idle motion so the game does its normal fall and landing.
 
 The cheat file only writes data: it sets the "which form" value and asks the game to switch, and it notes whether ZR, ZL or the D-pad is held so the patch can read it. The "Any" cheat reads the Pokémon from a second value, which the editor sets while the game runs by writing to the emulator's memory. Neither touches your save.
