@@ -93,7 +93,7 @@ Use the combos only once you're in the world. Details are in [mods/always-ditto]
 
 ### Play as Resident <sub>(experimental)</sub>
 
-Turn into a resident Pokémon and walk around as it. On the editor's **Mods** page, pick the Pokémon from the list, then press **Install**. The installed cheat is written for that Pokémon.
+Turn into a Pokémon and walk around as it, whether or not it lives in your town. On the editor's **Mods** page, pick the Pokémon from the list, then press **Install**. The installed cheat is written for that Pokémon.
 
 | Hold | Does |
 |---|---|
@@ -102,9 +102,9 @@ Turn into a resident Pokémon and walk around as it. On the editor's **Mods** pa
 
 **Only for Pokopia 2.0.0, update 655360.** On other versions the patch is not applied.
 
-The list starts on **Piplup**, which is the one that has been tested. The other Pokémon are taken from the game's data and may not all work. Restart the game after you change the Pokémon.
+The list starts on **Piplup**. Pokémon that live in your town, plus Espeon, Umbreon, Jolteon, Flareon and Vaporeon, have been tested. The rest are listed from the game's data and may not all work. Restart the game after you change the Pokémon.
 
-It ships the same patch as Always Ditto 0.5 and uses its own button combos, so both can be ticked at once. An older Always Ditto 0.4 patch is not compatible.
+It ships the same patch as Always Ditto 0.6 and uses its own button combos, so both can be ticked at once. An older Always Ditto 0.4 patch is not compatible.
 
 Details are in [mods/play-as-resident](mods/play-as-resident/).
 

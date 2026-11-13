@@ -1,6 +1,6 @@
 # Play as Resident (experimental)
 
-Turn into a resident Pokémon and walk around as it.
+Turn into a Pokémon and walk around as it. It doesn't have to live in your town.
 
 | Hold | Does |
 |---|---|
@@ -9,7 +9,9 @@ Turn into a resident Pokémon and walk around as it.
 
 The files in this folder are set up for **Piplup**. To pick another Pokémon, use the Pokopia Editor's **Mods** page: choose it from the list and press Install. Restart the game after changing it.
 
-**Known issue:** only Piplup has been tested. The other Pokémon are listed from the game's own data and may not all work.
+A Pokémon that doesn't live in your town appears a fraction of a second after the transform, because the game has to load its animations first.
+
+**Known issue:** pokémon that live in your town, plus Espeon, Umbreon, Jolteon, Flareon and Vaporeon, have been tested. The rest are listed from the game's data and may not all work.
 
 **Only for Pokopia 2.0.0, update 655360** (build ID `76A489F3BD3642FA`). On any other version the patch is not applied.
 
@@ -39,3 +41,5 @@ On an SD card both mods use the same cheat file path. To use both, paste the con
 
 ## How it works
 The game identifies every character, including you, by a character number: your human form is 1, Ditto is 70, Piplup is 114. The `.ips` patch makes the game hold whatever number is stored in a "which form" value (0 means off). The cheat file writes that value and asks the game to switch you to it. `pokemon.json` lists the number for each Pokémon.
+
+The game only loads a Pokémon's animations while that Pokémon lives in your town, and a model without animations is drawn as nothing. So the patch also loads the animations of the Pokémon you turn into, then repeats the form change once they are ready.

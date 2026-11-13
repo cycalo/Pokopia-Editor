@@ -46,4 +46,4 @@ The `.ips` patch is applied when the game loads. It changes five small pieces of
 
 The cheat file only writes data. ZL + D-pad Left sets the value to Ditto and asks the game to switch. ZL + D-pad Right clears it.
 
-The same patch file is shared with the Play as Resident mod, so both can be ticked at once.
+The same patch file is shared with the Play as Resident mod, so both can be ticked at once. Since 0.6 it also contains that mod's animation loading, which does nothing for Ditto.
