@@ -10,7 +10,8 @@
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?style=for-the-badge&logo=windows&logoColor=white)
 ![Pokopia](https://img.shields.io/badge/Pokopia-2.0.x-e74c3c?style=for-the-badge)
 
-<img src="docs/screenshots/bag.png" width="820" alt="The Bag page">
+<img src="docs/screenshots/catalog.png" width="49%" alt="The Item Catalog page">
+<img src="docs/transform_demo.gif" width="49%" alt="Play as Pokemon: turning into Mewtwo, Lugia, Heracross and Flareon">
 
 </div>
 
