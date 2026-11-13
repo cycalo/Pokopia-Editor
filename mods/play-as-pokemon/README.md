@@ -6,6 +6,9 @@ Turn into Ditto or any other Pokémon and walk around as it. It doesn't have to 
 |---|---|
 | **ZL + D-pad Left** | Turn into the chosen Pokémon and stay that way |
 | **ZL + D-pad Right** | Turn back into your character |
+| **ZR** as a flying Pokémon | Take off, hold to rise |
+| **ZL** while flying | Descend; keep holding it on the ground to land |
+| **ZL + ZR** while flying | Drop out of the air |
 
 This mod replaces **Always Ditto** and **Play as Resident**. Remove those two before using it: they use the same buttons. The Pokopia Editor's **Mods** page does that for you when you press Install or Update.
 
@@ -22,6 +25,12 @@ The files in this folder are the "Any" setup: `76A489F3BD3642FA.any.txt` is the 
 A Pokémon that doesn't live in your town appears a fraction of a second after the transform, because the game has to load its animations first.
 
 **Known issue:** Ditto, Pokémon that live in your town, and Espeon, Umbreon, Jolteon, Flareon and Vaporeon have been tested. The rest are listed from the game's data and may not all work.
+
+## Flying
+
+Pokémon that hover or fly in the game (Charizard, Scyther, Noctowl, Venomoth, Volbeat, Combee, Vespiquen and others) can fly when you are one of them. You get their own hover and flying animations. Let go of both buttons to hover in place. Other Pokémon ignore the fly buttons.
+
+Flying has been tested as Charizard, Scyther and Noctowl.
 
 ## Install
 
@@ -56,4 +65,6 @@ The `.ips` patch is applied when the game loads. Each change only acts while a "
 4. The player's "something is in the way" animation check always passes, so Ditto's idle never starts the stand-up stretch.
 5. The game only loads a Pokémon's animations while that Pokémon lives in your town, and a model without animations is drawn as nothing. So the patch loads the animations of the Pokémon you turn into, then repeats the form change once they are ready.
 
-The cheat file only writes data: it sets the "which form" value and asks the game to switch. The "Any" cheat reads the Pokémon from a second value, which the editor sets while the game runs by writing to the emulator's memory. Neither touches your save.
+6. Flying Pokémon have a hover motion, and the game applies no gravity while it plays. Every frame the patch looks at the fly buttons: ZR switches you to the hover motion and sets an upward speed, ZL sets a downward speed, and landing switches you back to the idle motion so the game does its normal fall and landing.
+
+The cheat file only writes data: it sets the "which form" value and asks the game to switch, and it notes whether ZR, ZL or the D-pad is held so the patch can read it. The "Any" cheat reads the Pokémon from a second value, which the editor sets while the game runs by writing to the emulator's memory. Neither touches your save.

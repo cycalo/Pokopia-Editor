@@ -1,9 +1,9 @@
 {
   "id": "play-as-pokemon",
   "name": "Play as Pokemon",
-  "version": "1.0",
+  "version": "1.1",
   "status": "experimental",
-  "summary": "Turn into Ditto or any other Pokémon and walk around as it.",
+  "summary": "Turn into Ditto or any other Pokémon and walk around as it. Flying Pokémon can fly.",
   "controls": [
     [
       "ZL + D-pad Left",
@@ -12,10 +12,23 @@
     [
       "ZL + D-pad Right",
       "Turn back into your character"
+    ],
+    [
+      "ZR (as a flying Pokémon)",
+      "Take off, hold to rise"
+    ],
+    [
+      "ZL (while flying)",
+      "Descend, keep holding on the ground to land"
+    ],
+    [
+      "ZL + ZR (while flying)",
+      "Drop out of the air"
     ]
   ],
   "known_issues": [
-    "Ditto, Pokémon that live in your town, and Espeon, Umbreon, Jolteon, Flareon and Vaporeon have been tested. The rest are listed from the game's data and may not all work."
+    "Ditto, Pokémon that live in your town, and Espeon, Umbreon, Jolteon, Flareon and Vaporeon have been tested. The rest are listed from the game's data and may not all work.",
+    "Flying has been tested as Charizard, Scyther and Noctowl."
   ],
   "game_update": "2.0.0 (update 655360)",
   "title_id": "0400A3A01EE4C000",

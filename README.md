@@ -11,7 +11,7 @@
 ![Pokopia](https://img.shields.io/badge/Pokopia-2.0.x-e74c3c?style=for-the-badge)
 
 <img src="docs/screenshots/catalog.png" width="49%" alt="The Item Catalog page">
-<img src="docs/transform_demo.gif" width="49%" alt="Play as Pokemon: turning into Mewtwo, Lugia, Heracross and Flareon">
+<img src="docs/charizard_fly.gif" width="49%" alt="Play as Pokemon: flying around town as Charizard">
 
 </div>
 
@@ -45,7 +45,7 @@ If your save isn't found, click **Open → Browse for a folder**.
 | 🗺️ | **Island Map** | See each island from above with everything you've placed. Export it as a PNG |
 | 📷 | **Photos** | Browse your in-game album and export full-size photos |
 | 🛟 | **Backups** | Make, compare and restore backups |
-| 🧩 | **Mods** | Play as Ditto or any other Pokémon, and change Pokémon while the game is running. See [mods/](mods/) |
+| 🧩 | **Mods** | Play as Ditto or any other Pokémon, fly as flying Pokémon, and change Pokémon while the game is running. See [mods/](mods/) |
 
 <table>
   <tr>
@@ -80,6 +80,9 @@ Turn into Ditto or any other Pokémon and walk around as it. It doesn't have to 
 |---|---|
 | **ZL + D-pad Left** | Turn into the chosen Pokémon and stay that way |
 | **ZL + D-pad Right** | Turn back into your character |
+| **ZR** as a flying Pokémon | Take off, hold to rise |
+| **ZL** while flying | Descend; keep holding it on the ground to land |
+| **ZL + ZR** while flying | Drop out of the air |
 
 1. Open the editor's **Mods** page and press **Install**.
 2. Restart the game and tick **Play as Pokemon** under its Properties → Add-Ons.
@@ -91,7 +94,9 @@ The button combo uses the Pokémon you picked last, or Ditto until you pick one.
 
 Play as Pokemon replaces the older **Always Ditto** and **Play as Resident** mods. If you have them, press **Update** on the Mods page and the editor removes them for you.
 
-Ditto, Pokémon that live in your town, and a handful of others have been tested. The rest are taken from the game's data and may not all work.
+Pokémon that hover or fly in the game, such as Charizard, Scyther and Noctowl, can fly with their own hover and flying animations. Let go of both buttons to hover in place.
+
+Ditto, Pokémon that live in your town, and a handful of others have been tested. Flying has been tested as Charizard, Scyther and Noctowl. The rest are taken from the game's data and may not all work.
 
 Want the mod without the editor? Download it on its own:
 
