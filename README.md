@@ -154,8 +154,8 @@ The exe stores its settings in `%APPDATA%\Pokopia Editor`.
 </details>
 
 <div align="center">
-<sub>Code released under the <a href="LICENSE">MIT License</a>. The license covers the editor's code only: Pokémon names, icons and other game assets belong to Nintendo, Game Freak and The Pokémon Company. Fan-made tool, not affiliated with them.</sub>
+<sub>Built with data from <a href="https://github.com/berichan/PokoHex">PokoHex</a> by berichan: the item, resident, move and emote icons, the name lists, the icon, portrait and map-part tables, and the island file layout used by the map.</sub>
 </div>
 <div align="center">
-<sub>Island map based on https://github.com/berichan/PokoHex</sub>
+<sub>Released under the <a href="LICENSE">GNU General Public License v3.0</a>. Pokémon names, icons and other game assets belong to Nintendo, Game Freak and The Pokémon Company. Fan-made tool, not affiliated with them.</sub>
 </div>

@@ -28,7 +28,7 @@ version_info = VSVersionInfo(
 a = Analysis(
     ['pokopia_gui.py'],
     pathex=['.'],
-    datas=[('data', 'data'), ('mods', 'mods')],
+    datas=[('data', 'data'), ('mods', 'mods'), ('LICENSE', '.')],
     hiddenimports=[
         'gui.pages.overview', 'gui.pages.bag', 'gui.pages.residents', 'gui.pages.moves',
         'gui.pages.wardrobe', 'gui.pages.map', 'gui.pages.photos', 'gui.pages.backups', 'gui.pages.advanced', 'gui.pages.mods', 'gui.pages.welcome',
