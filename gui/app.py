@@ -13,6 +13,7 @@ from gui import theme as T
 from gui import widgets as W
 from gui.assets import Assets, app_icon, set_app_id
 from gui.updates import UpdateChecker
+from version import VERSION_STR, WHATS_NEW
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if getattr(sys, 'frozen', False):  # the exe keeps its settings in %APPDATA%\Pokopia Editor
@@ -84,6 +85,18 @@ class App(QMainWindow):
         self.updates.found.connect(self.on_update)
         if persist:  # not in screenshot runs
             QTimer.singleShot(2500, self.updates.start)
+            if self.settings.get('whats_new_seen') != VERSION_STR:
+                QTimer.singleShot(700, self.show_whats_new)
+
+    def show_whats_new(self):
+        """Once per version: a short list of what changed."""
+        from gui.dialogs import WhatsNew
+        d = WhatsNew(self, VERSION_STR, WHATS_NEW)
+        d.exec()
+        self.settings['whats_new_seen'] = VERSION_STR
+        self.write_settings()
+        if d.open_mods and self.save:
+            self.show_page('Mods')
 
     # ---------- updates ----------
     def on_update(self, tag, url):
