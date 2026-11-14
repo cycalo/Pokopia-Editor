@@ -79,7 +79,8 @@ def cmd_wardrobe(a):
             state = 'default' if i in ps.WARDROBE_DEFAULTS and not (i and c.wardrobe_owned(i)) else \
                 'unlocked' if c.wardrobe_owned(i) else '-'
             note = '' if i is None or i in ps.WARDROBE_CONFIRMED or i in ps.WARDROBE_DEFAULTS else '(id from mirror order)'
-            print(f'  {i or "":>4} {name:<18} {state:<9} {note}')
+            tag = ps.TAG_LABEL.get(ps.item_tag(i), '')
+            print(f'  {i or "":>4} {name:<18} {state:<9} {tag:<4} {note}'.rstrip())
     print('Entries set in the save:', len(c.wardrobe_unlocked()), 'of', len(ps.WARDROBE_IDS))
 
 

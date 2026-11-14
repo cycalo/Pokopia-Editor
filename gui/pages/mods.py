@@ -99,6 +99,25 @@ class ModsPage(Page):
             W.button('Transform', T.G['star'], lambda: self.live_transform(mod, card), accent=True),
             W.button('Turn back', None, lambda: self.live_transform(mod, card, back=True)), None))
         card.body.addWidget(card.live_state)
+        card.exp = None
+        if mod.experimental:
+            card.body.addWidget(W.label('Experimental forms', 'h3'))
+            card.body.addWidget(W.label(
+                'Forms in the game that are not Pokémon: story objects such as the Master Ball, and the shapes Ditto '
+                'takes for its moves. They were found by trying unused form numbers. Some are very large or behave '
+                'oddly; press Turn back to return to your character.', 'small', wrap=True))
+            card.exp = QComboBox()
+            card.exp.addItems(list(mod.experimental))
+            card.exp.setMinimumWidth(190)
+            last = self.app.settings.get('live_experimental')
+            if last in mod.experimental:
+                card.exp.setCurrentText(last)
+            card.exp_state = W.label('', 'small', wrap=True)
+            card.body.addLayout(W.hbox(
+                card.exp,
+                W.button('Transform', T.G['star'], lambda: self.live_transform(mod, card, experimental=True), accent=True),
+                W.button('Turn back', None, lambda: self.live_transform(mod, card, back=True, experimental=True)), None))
+            card.body.addWidget(card.exp_state)
 
     def live_game(self, mod):
         """The running game with this mod's patch loaded; raises pl.LiveError with the reason otherwise."""
@@ -113,27 +132,29 @@ class ModsPage(Page):
                                    'the mod, tick it under Properties → Add-Ons, then restart the game.')
         return self.game
 
-    def live_transform(self, mod, card, back=False):
-        name = card.live.currentText().strip()
-        match = next((n for n in mod.numbers if n.lower() == name.lower()), None)
+    def live_transform(self, mod, card, back=False, experimental=False):
+        box, state, table, key = ((card.exp, card.exp_state, mod.experimental, 'live_experimental') if experimental
+                                  else (card.live, card.live_state, mod.numbers, 'live_pokemon'))
+        name = box.currentText().strip()
+        match = next((n for n in table if n.lower() == name.lower()), None)
         try:
             if not back and match is None:
                 raise pl.LiveError(f'"{name}" is not in the list.')
             game = self.live_game(mod)
-            if match is not None:
-                game.select(mod.numbers[match])
-            game.transform(0 if back else mod.numbers[match])
+            if match is not None and not experimental:
+                game.select(table[match])  # the button combo keeps using the last Pokémon, not an experimental form
+            game.transform(0 if back else table[match])
         except (pl.LiveError, OSError) as e:
-            W.set_role(card.live_state, 'warn')
-            card.live_state.setText(str(e))
+            W.set_role(state, 'warn')
+            state.setText(str(e))
             return
         if match is not None:
-            card.live.setCurrentText(match)
-            if self.app.settings.get('live_pokemon') != match:
-                self.app.settings['live_pokemon'] = match
+            box.setCurrentText(match)
+            if self.app.settings.get(key) != match:
+                self.app.settings[key] = match
                 self.app.write_settings()
-        W.set_role(card.live_state, 'small')
-        card.live_state.setText('Turned back into your character.' if back else f'You are now {match}.')
+        W.set_role(state, 'small')
+        state.setText('Turned back into your character.' if back else f'You are now {match}.')
 
     # ---------- emulator folder ----------
     def fill_where(self, select=None):

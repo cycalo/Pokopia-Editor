@@ -28,10 +28,15 @@ class Mod:
         self.choice = m.get('choice')
         # Optional choice["any"]: an extra option with its own file, which reads the number from the game's
         # memory instead (pokopia_live sets it while the game runs). Its label maps to None in `options`.
-        self.options, self.option, self.any_label = {}, None, None
+        # Optional choice["experimental"]: label -> number for forms that are not Pokémon (story objects, Ditto's
+        # move forms). They are only offered for the live transform, never as the installed option.
+        self.options, self.option, self.any_label, self.experimental = {}, None, None, {}
         if self.choice:
             with open(os.path.join(folder, self.choice['options']), encoding='utf-8') as f:
                 numbers = json.load(f)  # label -> number
+            if self.choice.get('experimental'):
+                with open(os.path.join(folder, self.choice['experimental']), encoding='utf-8') as f:
+                    self.experimental = json.load(f)
             if self.choice.get('any'):
                 self.any_label = self.choice['any']['label']
                 self.options[self.any_label] = None

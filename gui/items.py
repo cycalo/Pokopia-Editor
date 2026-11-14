@@ -10,6 +10,7 @@ import pokopia_items as pi
 import pokopia_save as ps
 from gui import theme as T
 from gui import widgets as W
+from gui.tiles import paint_tag
 
 ITEM_MIME = 'application/x-pokopia-item'
 SLOT_MIME = 'application/x-pokopia-slots'
@@ -23,6 +24,9 @@ def item_tooltip(i, catalog=None, extra=''):
     size = pi.placeable(i)
     if size:
         lines.append(f'Placeable, {size[0]}×{size[2]} blocks, {size[1]} high')
+    tag = ps.item_tag(i)
+    if tag:
+        lines.append(f'<span style="color:{ps.TAG_COLOR[tag]}"><b>{ps.TAG_LABEL[tag]}</b></span>  {ps.TAG_LONG[tag]}')
     d = pi.duplicate_count(i)
     if d > 1:
         lines.append(f'{d} items share this name')
@@ -151,6 +155,7 @@ class ItemDelegate(QStyledItemDelegate):
             p.drawRoundedRect(pr, 9, 9)
             p.setPen(col if T.NAME == 'dark' else col.darker(140))
             p.drawText(pr, Qt.AlignCenter, lab)
+            paint_tag(p, pr.x() - 6, r.center().y() - 7, ps.item_tag(i), right=True)
             p.setPen(T.c('muted'))
             p.drawText(QRectF(r.right() - 50, r.y(), 44, r.height()), Qt.AlignVCenter | Qt.AlignRight, f'#{i}')
         else:
@@ -169,6 +174,7 @@ class ItemDelegate(QStyledItemDelegate):
             p.setPen(QPen(T.c('card'), 1.5))
             d = 8
             p.drawEllipse(QRectF(r.right() - d - 5, r.y() + 5, d, d))
+        tagw = 0 if self.b.mode == 'list' else paint_tag(p, r.x() + 5, r.y() + 5, ps.item_tag(i))
         # duplicate count
         if self.b.dedupe:
             n = pi.duplicate_count(i)
@@ -177,7 +183,7 @@ class ItemDelegate(QStyledItemDelegate):
                 p.setFont(f3)
                 t = f'×{n}'
                 w = QFontMetrics(f3).horizontalAdvance(t) + 8
-                br = QRectF(r.x() + 5, r.y() + 5, w, 14)
+                br = QRectF(r.x() + 5 + (tagw + 3 if tagw else 0), r.y() + 5, w, 14)
                 p.setBrush(T.c('badge', 220))
                 p.setPen(Qt.NoPen)
                 p.drawRoundedRect(br, 7, 7)
@@ -299,6 +305,7 @@ class ItemBrowser(QWidget):
         self.category = None
         self.catalog = None
         self.only_icons = self.only_catalog = False
+        self.only_tags = set()
         self.dedupe = True
         self.sort = 'name'
         lay = QVBoxLayout(self)
@@ -335,6 +342,10 @@ class ItemBrowser(QWidget):
         self.c_icons = W.chip('With icon', slot=self._opts)
         self.c_catalog = W.chip('In my catalog', slot=self._opts)
         self.c_dedupe = W.chip('One per name', slot=self._opts)
+        self.c_dlc = W.chip('DLC', slot=self._opts)
+        self.c_event = W.chip('Event', slot=self._opts)
+        self.c_dlc.setToolTip('Only Expansion Pass (Bubbly Basin) items, as marked in the game data')
+        self.c_event.setToolTip('Only limited-time event items, as marked in the game data')
         self.c_dedupe.setChecked(True)
         self.c_icons.setToolTip('Only items that have a game icon')
         self.c_catalog.setToolTip('Only items your item catalog marks as obtained (read from the save)')
@@ -342,9 +353,15 @@ class ItemBrowser(QWidget):
         for c in (self.c_icons, self.c_catalog, self.c_dedupe):
             opts.addWidget(c)
         opts.addStretch(1)
-        self.count = W.label('', 'small')
-        opts.addWidget(self.count)
         lay.addLayout(opts)
+        opts2 = QHBoxLayout()   # content tags get their own row: five chips do not fit the Bag page's side panel
+        opts2.setSpacing(6)
+        opts2.addWidget(self.c_dlc)
+        opts2.addWidget(self.c_event)
+        opts2.addStretch(1)
+        self.count = W.label('', 'small')
+        opts2.addWidget(self.count)
+        lay.addLayout(opts2)
         self.model = ItemModel(self)
         self.view = ItemView(self)
         self.view.setModel(self.model)
@@ -389,6 +406,7 @@ class ItemBrowser(QWidget):
         self.only_icons = self.c_icons.isChecked()
         self.only_catalog = self.c_catalog.isChecked()
         self.dedupe = self.c_dedupe.isChecked()
+        self.only_tags = {t for t, c in ((ps.TAG_DLC, self.c_dlc), (ps.TAG_EVENT, self.c_event)) if c.isChecked()}
         self.refilter()
 
     def set_mode(self, mode):
@@ -433,6 +451,8 @@ class ItemBrowser(QWidget):
             if self.only_icons and not pi.has_icon(i):
                 continue
             if self.only_catalog and (cata is None or i not in cata):
+                continue
+            if self.only_tags and ps.item_tag(i) not in self.only_tags:
                 continue
             if q:
                 if q.isdigit():

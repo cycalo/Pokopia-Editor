@@ -41,6 +41,7 @@
   "choice": {
     "label": "Pokémon",
     "options": "pokemon.json",
+    "experimental": "experimental.json",
     "default": "Any (choose while playing)",
     "file": "cheats",
     "default_value": 114,

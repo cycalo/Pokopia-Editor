@@ -26,6 +26,26 @@ The files in this folder are the "Any" setup: `76A489F3BD3642FA.any.txt` is the 
 
 A Pokémon that doesn't live in your town appears a fraction of a second after the transform, because the game has to load its animations first.
 
+## Experimental forms
+
+The game also has forms that are not Pokémon: story objects and the shapes Ditto takes for its moves. On the Mods page, pick one under **Experimental forms** and press **Transform** while the game is running. They are only offered there, not as a fixed Pokémon, and the button combo keeps using the last Pokémon you picked.
+
+| Form | Number |
+|---|---|
+| Barrel with bottle | 268 |
+| Ditto (Glide form) | 153 |
+| Ditto (Magnet Rise form) | 296 |
+| Ditto (Rollout form) | 206 |
+| Ditto (Surf form) | 31 |
+| Ditto (human form, underwater sounds) | 208 |
+| Ditto flag | 327 |
+| Master Ball | 324 |
+| Mewtwo (alternate) | 326 |
+| Sand-covered tower (huge) | 325 |
+| Team Rocket tower (huge) | 323 |
+
+The two towers are far larger than the camera expects. Press **Turn back** to return to your character.
+
 ## Flying
 
 Pokémon that hover or fly in the game (Charizard, Scyther, Noctowl, Venomoth, Volbeat, Combee, Vespiquen and others) can fly when you are one of them. You get their own hover and flying animations. Let go of both buttons to hover in place. Other Pokémon ignore the fly buttons.

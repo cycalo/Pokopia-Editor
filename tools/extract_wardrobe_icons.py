@@ -35,7 +35,8 @@ OUTFIT_SPRITE = {
     'Familiar 1': 1, 'Familiar 2': 2, 'Pokémon Center': 3, 'Team Rocket': 4, 'Rock-solid': 5, 'Ranger': 6,
     'Ninja': 7, 'Psychic Master': 8, 'Black Belt': 9, 'Sailor': 10, 'Super Nerd': 11, 'Roughneck': 12,
     'Bird Keeper': 13, 'Red': 14, 'Cool': 15, 'Fresh': 16, 'Rascal': 17, 'Cozy': 18, 'Chic': 19, 'Sporty': 20,
-    'Sightseer': 21, 'Professor': 22, 'Mermaid': 23, 'Preschooler': 24, 'Triathlete': 27}
+    'Sightseer': 21, 'Professor': 22, 'Mermaid': 23, 'Preschooler': 24, 'Rad': 25, 'Cheerful': 26,
+    'Triathlete': 27}
 HAIR_SPRITE = {
     'Buns': 1, 'Two-block cut': 2, 'Braided pigtails': 3, 'Locs': 4, 'Curly': 5, 'Shaved': 6, 'Parted': 7,
     'Fluffy': 8, 'Mermaid': 9, 'Winged pigtails': 10, 'Sideswept': 11, 'Simple': 12, 'Long bangs': 13,

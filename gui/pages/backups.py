@@ -1,6 +1,6 @@
 import os
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QAbstractItemView, QHBoxLayout, QHeaderView, QMessageBox, QTextBrowser, QTreeWidget,
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QHBoxLayout, QHeaderView, QMessageBox, QTextBrowser, QTreeWidget,
                                QTreeWidgetItem, QVBoxLayout, QSplitter)
 
 import pokopia_extras as px
@@ -13,7 +13,7 @@ from gui.pages.base import Page
 
 class BackupsPage(Page):
     title, nav, glyph = 'Backups', 'Backups', T.G['history']
-    subtitle = 'Every overwrite is backed up first. Compare and restore here.'
+    subtitle = 'Every save from the editor is backed up first. Compare, restore and delete backups here.'
 
     def build(self):
         self.rows = []
@@ -23,6 +23,8 @@ class BackupsPage(Page):
         top = W.Card('Backups', '', T.G['history'], padding=14)
         self.top = top
         top.actions.addWidget(W.button('Back up now', T.G['save'], self.backup, accent=True))
+        top.actions.addWidget(W.button('Refresh', T.G['refresh'], self.refresh_list,
+                                       tip='Read the backup folder again'))
         top.actions.addWidget(W.button('Open folder', T.G['folder'], self.open_folder))
         self.tv = QTreeWidget()
         self.tv.setRootIsDecorated(False)
@@ -36,7 +38,8 @@ class BackupsPage(Page):
         top.body.addWidget(self.tv, 1)
         self.b_compare = W.button('Compare with the open save', T.G['compare'], self.compare)
         self.b_restore = W.button('Restore…', T.G['restore'], self.restore, danger=True)
-        top.body.addLayout(W.hbox(self.b_compare, self.b_restore, None,
+        self.b_delete = W.button('Delete…', T.G['delete'], self.delete, danger=True)
+        top.body.addLayout(W.hbox(self.b_compare, self.b_restore, self.b_delete, None,
                                   W.button('What changed since the game\'s last save?', T.G['info'], self.compare_b00)))
         out = W.Card('Differences', 'Pick a backup and press Compare, or ask what changed since the game\'s last save.',
                      T.G['list'], padding=14)
@@ -65,10 +68,15 @@ class BackupsPage(Page):
             self.tv.setCurrentItem(self.tv.topLevelItem(keep))
         self.sel_changed()
 
+    def refresh_list(self):
+        self.refresh()
+        self.app.toast(f'{len(self.rows)} backup{"s" if len(self.rows) != 1 else ""} found')
+
     def sel_changed(self):
         on = self.tv.currentItem() is not None
         self.b_compare.setEnabled(on)
         self.b_restore.setEnabled(on)
+        self.b_delete.setEnabled(on)
 
     def chosen(self):
         it = self.tv.currentItem()
@@ -126,13 +134,35 @@ class BackupsPage(Page):
                 self, 'Emulator running', f'{", ".join(app.emus)} is running.\n\nRestoring while the game is open can be '
                 'undone by the game\'s next save. Restore anyway?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No) != QMessageBox.Yes:
             return
-        msg = (f'Replace the whole save folder\n{app.save.folder}\n\nwith backup "{e["name"]}" ({e["when"]:%d %b %Y %H:%M})?\n\n'
-               'The current save is backed up first.' + ('\nUnsaved edits in the editor are discarded.' if self.c.edited else ''))
-        if QMessageBox.question(self, 'Restore backup', msg, QMessageBox.Yes | QMessageBox.No, QMessageBox.No) != QMessageBox.Yes:
+        msg = (f'Replace the whole save folder\n{app.save.folder}\n\nwith backup "{e["name"]}" ({e["when"]:%d %b %Y %H:%M})?'
+               + ('\n\nUnsaved edits in the editor are discarded.' if self.c.edited else ''))
+        box = QMessageBox(QMessageBox.Question, 'Restore backup', msg, QMessageBox.Yes | QMessageBox.No, self)
+        box.setDefaultButton(QMessageBox.No)
+        keep = QCheckBox('Back up the current save first')
+        keep.setChecked(True)
+        keep.setToolTip('Untick to skip the safety copy. The current save is then lost unless it is already in the list.')
+        box.setCheckBox(keep)
+        if box.exec() != QMessageBox.Yes:
             return
         try:
-            safety = px.restore_backup(e['path'], app.save.folder)
+            safety = px.restore_backup(e['path'], app.save.folder, safety=keep.isChecked())
         except Exception as ex:
             return QMessageBox.critical(self, 'Not restored', str(ex))
         app.load(app.save.folder, quiet=True)
-        app.toast(f'Restored. The previous save is in {safety}')
+        self.refresh()
+        app.toast(f'Restored. The previous save is in {safety}' if safety else 'Restored. The previous save was not backed up.')
+
+    def delete(self):
+        e = self.chosen()
+        if not e:
+            return
+        msg = (f'Permanently delete backup "{e["name"]}" ({e["when"]:%d %b %Y %H:%M})?\n\n{e["path"]}\n\n'
+               'This cannot be undone. The save the game uses is not touched.')
+        if QMessageBox.warning(self, 'Delete backup', msg, QMessageBox.Yes | QMessageBox.No, QMessageBox.No) != QMessageBox.Yes:
+            return
+        try:
+            px.delete_backup(e['path'])
+        except Exception as ex:
+            return QMessageBox.critical(self, 'Not deleted', str(ex))
+        self.refresh()
+        self.app.toast(f'Deleted backup "{e["name"]}"')

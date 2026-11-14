@@ -13,7 +13,8 @@ OUTFIT_EMOJI = {
     'Familiar 1': '👕', 'Familiar 2': '👚', 'Pokémon Center': '🏥', 'Team Rocket': '🚀', 'Rock-solid': '🪨',
     'Ranger': '🌲', 'Ninja': '🥷', 'Psychic Master': '🔮', 'Black Belt': '🥋', 'Sailor': '⚓', 'Super Nerd': '🤓',
     'Roughneck': '🔧', 'Bird Keeper': '🐦', 'Red': '🧢', 'Fresh': '🌿', 'Cool': '😎', 'Rascal': '😜', 'Cozy': '🧶',
-    'Sporty': '⚽', 'Chic': '👗', 'Professor': '🎓', 'Sightseer': '📸', 'Mermaid': '🐚', 'Preschooler': '🎒'}
+    'Sporty': '⚽', 'Chic': '👗', 'Professor': '🎓', 'Sightseer': '📸', 'Mermaid': '🐚', 'Preschooler': '🎒',
+    'Rad': '🛹', 'Cheerful': '😄', 'Triathlete': '🚴'}
 HAIR_EMOJI = {
     'Short': '💇', 'Pigtails': '🎀', 'Buns': '🍡', 'Two-block cut': '✂️', 'Braided pigtails': '🎀', 'Locs': '🌀',
     'Curly': '🌀', 'Shaved': '🪒', 'Parted': '💇', 'Fluffy': '☁️', 'Mermaid': '🐚', 'Winged pigtails': '🪽',
@@ -77,6 +78,7 @@ class WardrobePage(Page):
             for n, (i, name) in enumerate(entries):
                 t = IconTile(name, lambda s, nm=name, k='outfit' if key == 'outfits' else 'hair', em=emoji.get(name, '👕'),
                              tn=tint: self.app.assets.wardrobe(k, nm, s) or emoji_tile(em, s, tn), style='v', size=(118, 104))
+                t.tag = ps.item_tag(i)
                 t.clicked.connect(lambda i=i, nm=f'{name} {kind}': self.toggle(i, nm))
                 g.addWidget(t, n // 8, n % 8)
                 self.tiles[(key, n)] = (i, name, t)
@@ -113,6 +115,8 @@ class WardrobePage(Page):
             default = i in ps.WARDROBE_DEFAULTS
             on = c.wardrobe_available(i)
             checked = ' Checked in game.' if i in ps.WARDROBE_CONFIRMED else ''
+            if ps.item_tag(i):
+                checked += f' {ps.TAG_LONG[ps.item_tag(i)]} content.'
             if default:
                 t.set_state(True, badge=(T.G['lock'], 'faint'), locked=True, tip=f'{name}: always available.')
                 t.setCursor(Qt.ArrowCursor)

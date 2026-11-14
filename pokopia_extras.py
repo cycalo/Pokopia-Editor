@@ -395,17 +395,29 @@ def create_backup(folder, root=None, tag='manual'):
     return dst
 
 
-def restore_backup(backup, live, root=None):
-    """Replace the save folder `live` with a copy of `backup`. The current contents are backed up first.
+def delete_backup(path, root=None):
+    """Permanently delete one backup folder. Only a save folder directly inside the backup root is accepted."""
+    root = os.path.abspath(root or ps.default_backup_root())
+    path = os.path.abspath(path)
+    if os.path.normcase(os.path.dirname(path)) != os.path.normcase(root):
+        raise ValueError('That folder is not inside the backup folder')
+    if os.path.islink(path) or not os.path.isfile(os.path.join(path, 'G00', 'CMNDAT.BIN')):
+        raise ValueError('That folder is not a save backup')
+    shutil.rmtree(path)
 
-    Returns the path of that safety backup."""
+
+def restore_backup(backup, live, root=None, safety=True):
+    """Replace the save folder `live` with a copy of `backup`.
+
+    With safety=True (the default) the current contents are backed up first.
+    Returns the path of that safety backup, or None when it was skipped."""
     backup, live = os.path.abspath(backup), os.path.abspath(live)
     if os.path.normcase(backup) == os.path.normcase(live):
         raise ValueError('That backup is the folder that is open')
     ps.SaveFolder(backup)  # must be a readable save
     if not os.path.isdir(live):
         raise ValueError('Save folder does not exist')
-    safety = create_backup(live, root, 'before_restore')
+    safety = create_backup(live, root, 'before_restore') if safety else None
     staging, old = live + '.restore_tmp', live + '.old_tmp'
     for p in (staging, old):
         if os.path.exists(p):

@@ -8,6 +8,7 @@ import pokopia_save as ps
 from gui import theme as T
 from gui import widgets as W
 from gui.pages.base import Page
+from gui.tiles import paint_tag
 
 COLS = ['Pokémon', 'Friendship', 'Thanks', 'Gift lvl', 'Home', 'First met']
 KEYS = [lambda v: v['name'].lower(), lambda v: v['friendship'], lambda v: v['thank_points'],
@@ -65,6 +66,8 @@ class ResidentModel(QAbstractTableModel):
         if role == Qt.ForegroundRole:
             if (col == 4 and not v['home_area_name']) or (col == 5 and not v['met']):
                 return T.c('muted')
+        if role == Qt.ToolTipRole and col == 0 and ps.villager_tag(v['index']):
+            return ps.TAG_LONG[ps.villager_tag(v['index'])] + ' Pokémon'
         if role == Qt.ToolTipRole and col == 3 and v['waiting_present']:
             return 'A gift is waiting'
         return None
@@ -91,6 +94,8 @@ class ResidentDelegate(QStyledItemDelegate):
             p.setFont(T.font(10, QFont.DemiBold))
             p.setPen(T.c('text'))
             p.drawText(QRectF(r.x() + 58, r.y(), r.width() - 60, r.height()), Qt.AlignVCenter, v['name'])
+            nw = p.fontMetrics().horizontalAdvance(v['name'])
+            paint_tag(p, r.x() + 58 + nw + 8, r.center().y() - 7, ps.villager_tag(v['index']))
         elif col == 1:
             f = v['friendship']
             frac = min(1.0, f / ps.FRIENDSHIP_MAX)

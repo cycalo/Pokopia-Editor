@@ -372,6 +372,7 @@ Press **Ctrl+F** to search for a Pokémon.
 | Tatsugiri (3)       | 00000107 |
 | Timburr             | 00000062 |
 | Tinkatink           | 000000C1 |
+| Tinkaton            | 0000014D |
 | Tinkatuff           | 000000C2 |
 | Tinkmaster          | 000000CC |
 | Torchic             | 000000E1 |
@@ -419,3 +420,21 @@ Press **Ctrl+F** to search for a Pokémon.
 | Zoroark             | 000000B9 |
 | Zorua               | 000000B8 |
 | Zubat               | 000000A7 |
+
+## Experimental forms
+
+These are not Pokémon: story objects and the shapes Ditto takes for its moves. They use the same line in the cheat file. The two towers are very large.
+
+| Form                                  | Code     |
+|---------------------------------------|----------|
+| Barrel with bottle                    | 0000010C |
+| Ditto (Glide form)                    | 00000099 |
+| Ditto (Magnet Rise form)              | 00000128 |
+| Ditto (Rollout form)                  | 000000CE |
+| Ditto (Surf form)                     | 0000001F |
+| Ditto (human form, underwater sounds) | 000000D0 |
+| Ditto flag                            | 00000147 |
+| Master Ball                           | 00000144 |
+| Mewtwo (alternate)                    | 00000146 |
+| Sand-covered tower (huge)             | 00000145 |
+| Team Rocket tower (huge)              | 00000143 |

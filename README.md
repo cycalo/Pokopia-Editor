@@ -38,13 +38,13 @@ If your save isn't found, click **Open → Browse for a folder**.
 |:-:|---|---|
 | 🏠 | **Overview** | Rename your player, see your stats, and use one-click actions: max friendship, learn every emote, unlock the wardrobe |
 | 🎒 | **Bag** | Drag items into your bag, swap slots, copy with Ctrl, set amounts |
-| 📖 | **Item Catalog** | Browse and search every item by category, then double-click to add it |
+| 📖 | **Item Catalog** | Browse and search every item by category, then double-click to add it. Expansion Pass and event items are tagged and can be filtered |
 | 💛 | **Residents** | Set friendship, see when you met each resident, and find their home on the map |
 | ✨ | **Moves & Emotes** | Learn or unlearn with a click, then set up your move and emote wheels |
-| 👕 | **Wardrobe** | Unlock any outfit or hairstyle, or all of them at once |
+| 👕 | **Wardrobe** | Unlock any outfit or hairstyle, or all of them at once, including the Expansion Pass ones |
 | 🗺️ | **Island Map** | See each island from above with everything you've placed. Export it as a PNG |
 | 📷 | **Photos** | Browse your in-game album and export full-size photos |
-| 🛟 | **Backups** | Make, compare and restore backups |
+| 🛟 | **Backups** | Make, compare, restore and delete backups |
 | 🧩 | **Mods** | Play as Ditto or any other Pokémon, fly as flying Pokémon, and change Pokémon while the game is running. See [mods/](mods/) |
 
 <table>
@@ -95,6 +95,8 @@ The button combo uses the Pokémon you picked last, or Ditto until you pick one.
 Play as Pokemon replaces the older **Always Ditto** and **Play as Resident** mods. If you have them, press **Update** on the Mods page and the editor removes them for you.
 
 Pokémon that hover or fly in the game, such as Charizard, Scyther and Noctowl, can fly with their own hover and flying animations. Let go of both buttons to hover in place.
+
+Below the Pokémon list, **Experimental forms** turns you into things that are not Pokémon, such as the Master Ball or Ditto's Surf and Glide forms.
 
 Want the mod without the editor? Download it on its own:
 

@@ -2,12 +2,16 @@
 
 Bump this before building a release; the GitHub release tag should be v<VERSION>.
 Rewrite WHATS_NEW for each release: it is shown once, the first time that version is opened."""
-VERSION = (1, 3, 1)
+VERSION = (1, 4, 0)
 VERSION_STR = '.'.join(map(str, VERSION))
 
 WHATS_NEW = [
-    ('Fly as flying Pokémon', 'As Charizard, Scyther, Noctowl or another Pokémon that flies, press ZR to take off. '
-                              'Hold ZR to rise, ZL to descend, and let go to hover. ZL + ZR drops you out of the air.'),
-    ('Their own animations', "You use the Pokémon's own hover and flying animations."),
-    ('Updating', 'Open the Mods page and press Update, then restart the game.'),
+    ('DLC and Event tags', 'Items, outfits, hairstyles and residents from the Expansion Pass or a limited-time event '
+                           'are now marked. The item browser has DLC and Event filters.'),
+    ('Three more outfits', 'Rad, Cheerful and Triathlete can be unlocked on the Wardrobe page.'),
+    ('Backups', 'Delete backups you no longer need, refresh the list, and choose whether a restore backs up the '
+                'current save first.'),
+    ('Experimental forms', 'Play as Pokemon can now turn you into things that are not Pokémon, such as the '
+                           'Master Ball or Ditto\'s Surf and Glide forms. Tinkaton was added to the Pokémon list. '
+                           'Find them on the Mods page while the game is running.'),
 ]

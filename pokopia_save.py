@@ -54,7 +54,8 @@ WARDROBE_OWNED = 1
 OUTFITS = [(2397 + n, name) for n, name in enumerate([
     'Familiar 1', 'Familiar 2', 'Pokémon Center', 'Team Rocket', 'Rock-solid', 'Ranger', 'Ninja',
     'Psychic Master', 'Black Belt', 'Sailor', 'Super Nerd', 'Roughneck', 'Bird Keeper', 'Red', 'Fresh',
-    'Cool', 'Rascal', 'Cozy', 'Sporty', 'Chic', 'Professor', 'Sightseer', 'Mermaid', 'Preschooler'], 1)]
+    'Cool', 'Rascal', 'Cozy', 'Sporty', 'Chic', 'Professor', 'Sightseer', 'Mermaid', 'Preschooler',
+    'Rad', 'Cheerful', 'Triathlete'], 1)]   # last five are Expansion Pass (Bubbly Basin) outfits; Rad/Cheerful/Triathlete IDs come from the ROM item table
 # Hairstyles: mirror order, Shaved is a default with no ID found. Confirmed in game at 2461 Parted,
 # 2463 Mermaid, 2472 Side tails; 2459 showed nothing new (Locs is a default). The rest follow the order.
 HAIRSTYLES = list(zip(range(2454, 2461), ['Short', 'Pigtails', 'Buns', 'Two-block cut', 'Braided pigtails',
@@ -128,6 +129,33 @@ SKILL_NAMES = _names('skill')
 AREA_NAMES = _names('area')
 REACTION_NAMES = _names('reaction')
 PUBLIC_REACTIONS = [i for i in range(1, min(REACT_PUBLIC_MAX + 1, len(REACTION_NAMES))) if REACTION_NAMES[i].strip()]
+
+
+# Content tags. Items: data/item_tag.bin, built from the game's own item table by tools/extract_item_tags.py.
+# Outfits and hairstyles: the published Expansion Pass lists. Residents: the game keeps event Pokémon in the 505-527
+# ID block and Bubbly Basin Pokémon in 554-607 (inferred from the blocks, not a per-Pokémon flag).
+TAG_DLC, TAG_EVENT = 1, 2
+TAG_LABEL = {TAG_DLC: 'DLC', TAG_EVENT: 'Event'}
+TAG_LONG = {TAG_DLC: 'Expansion Pass (Bubbly Basin)', TAG_EVENT: 'Limited-time event'}
+TAG_COLOR = {TAG_DLC: '#3b9ddd', TAG_EVENT: '#e08a2e'}
+try:
+    with open(os.path.join(HERE, 'data', 'item_tag.bin'), 'rb') as _f:
+        ITEM_TAGS = _f.read()
+except OSError:
+    ITEM_TAGS = b''
+WARDROBE_DLC = {2420, 2421, 2422, 2423, 2424,     # Mermaid, Preschooler, Rad, Cheerful, Triathlete outfits
+                2468, 2469, 2470, 2471, 2472}     # Long, Crested, Ponytail, Messy short, Side tails hairstyles
+
+
+def item_tag(i):
+    """0, TAG_DLC or TAG_EVENT for an item, outfit or hairstyle ID."""
+    if i in WARDROBE_DLC:
+        return TAG_DLC
+    return ITEM_TAGS[i] if i and 0 < i < len(ITEM_TAGS) else 0
+
+
+def villager_tag(i):
+    return TAG_DLC if 554 <= i <= 607 else TAG_EVENT if 505 <= i <= 527 else 0
 
 
 def name_of(lst, i, prefix):

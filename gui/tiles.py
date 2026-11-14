@@ -4,6 +4,7 @@ from PySide6.QtCore import QByteArray, QMimeData, QPoint, QPointF, QRectF, QSize
 from PySide6.QtGui import QColor, QDrag, QFont, QFontMetrics, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import QApplication, QSizePolicy, QWidget
 
+import pokopia_save as ps
 from gui import theme as T
 
 
@@ -18,6 +19,23 @@ def _elide2(text, fm, w):
     return [fm.elidedText(text, Qt.ElideRight, w)]
 
 
+def paint_tag(p, x, y, tag, right=False):
+    """Small DLC / Event pill at (x, y); with right=True, x is the right edge. Returns its width (0 if no tag)."""
+    text = ps.TAG_LABEL.get(tag)
+    if not text:
+        return 0
+    f = T.font(7, QFont.Bold)
+    w = QFontMetrics(f).horizontalAdvance(text) + 9
+    r = QRectF(x - w if right else x, y, w, 14)
+    p.setBrush(QColor(ps.TAG_COLOR[tag]))
+    p.setPen(Qt.NoPen)
+    p.drawRoundedRect(r, 7, 7)
+    p.setFont(f)
+    p.setPen(QColor('#ffffff'))
+    p.drawText(r, Qt.AlignCenter, text)
+    return w
+
+
 class IconTile(QWidget):
     """Clickable tile with an icon, a title and an on/off state. Optional drag payload when on.
 
@@ -28,6 +46,7 @@ class IconTile(QWidget):
         super().__init__(parent)
         self.title, self.pixmap_fn, self.style_ = title, pixmap_fn, style
         self.note, self.badge, self.on, self.locked = '', None, False, False
+        self.tag = 0
         self.mime, self.payload = mime, payload
         self.hover = False
         self.press_pos = None
@@ -115,6 +134,7 @@ class IconTile(QWidget):
             p.setFont(T.font(8.5))
             p.setPen(T.c('muted'))
             p.drawText(QRectF(tx, r.center().y() + 2, r.width() - s - 60, r.height() / 2 - 8), Qt.AlignTop | Qt.AlignLeft, self.note)
+        paint_tag(p, r.x() + 5, r.y() + 5, self.tag)
         # state badge
         if self.badge or self.on:
             glyph, col = self.badge or (T.G['check'], 'accent')
