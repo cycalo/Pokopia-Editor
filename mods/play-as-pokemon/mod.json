@@ -1,7 +1,7 @@
 {
   "id": "play-as-pokemon",
   "name": "Play as Pokemon",
-  "version": "1.6",
+  "version": "1.7",
   "status": "experimental",
   "summary": "Turn into any Pokémon in Pokopia. Use their abilities: flying Pokémon can fly, and Grow, Burn, Water and Generate Pokémon can use their ability. Works in co-op / Link Play: every player needs the mod installed.",
   "controls": [

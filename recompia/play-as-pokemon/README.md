@@ -15,16 +15,17 @@ The [Play as Pokemon](../../mods/play-as-pokemon/README.md) mod for [Recompia](h
 | **ZL** while flying | Descend the same way; keep holding it on the ground to land |
 | **ZL + ZR** held while flying | Drop out of the air (press ZR again to take off) |
 | **ZR** (Pokémon that can't fly) or **ZL + D-pad Down** (any) | Use the Pokémon's ability on what is in front of you |
+| **A** | Open doors, use the crafting bench and boxes, pick things up, as the human does (1.7.0) |
 
 Keyboard players can also set a key for "turn into", "turn back" and the ability, and change the F3 key, in the mod's settings.
 
 ## Install
 
-1. Copy `recompia_play_as_pokemon-1.6.0.pkmod` into Recompia's `mods` folder (on Windows, next to `pkp.exe`), and remove an older version of it.
+1. Copy `recompia_play_as_pokemon-1.7.0.pkmod` into Recompia's `mods` folder (on Windows, next to `pkp.exe`), and remove an older version of it.
 2. Open `PokopiaLauncher.exe`, go to **Mods**, and allow the new mod's code when it asks.
-3. The first time these hook points are installed, the launcher rebuilds the game once before the next start (a few minutes). Updating from a version older than 1.5.0 rebuilds once more (1.5.0 added the hook point `motion_reset`); 1.6.0 adds none, so coming from 1.5.0 needs no rebuild. Then press **Play**.
+3. The first time these hook points are installed, the launcher rebuilds the game once before the next start (a few minutes). Updating from a version older than 1.5.0 rebuilds once more (1.5.0 added the hook point `motion_reset`); 1.6.0 added none; 1.7.0 adds `face`, `chair_use`, `bed_use` and `attach`, so updating to it rebuilds once more. Then press **Play**.
 
-The game log (`pkp.log`) should show `play_as_pokemon 1.6.0 started` and `[play_as_pokemon] ready: ZL + L3 turns into Ditto and back, ...`.
+The game log (`pkp.log`) should show `play_as_pokemon 1.7.0 started` and `[play_as_pokemon] ready: ZL + L3 turns into Ditto and back, ...`.
 
 ## Choosing the Pokémon
 
@@ -36,7 +37,7 @@ In the launcher's **Mods** page, or in game with **F1 → Mods**:
 
 A change made in F1 while you are transformed turns you into the new Pokémon at once. The list and ZL + D-pad Left / Right pick one for this session only: the settings stay as they are.
 
-The other settings switch flying, the Left / Right picking and the name message off.
+The other settings switch flying, the Left / Right picking, the name message and using doors and the rest while transformed off.
 
 ## Flying
 
@@ -69,11 +70,23 @@ Press the button once you have finished transforming: a press during the transfo
 
 Talking to most Pokémon makes the game turn you back into your usual character: the conversation needs it (the Pokémon that comment on your transformation don't). Since 1.2.2 the mod lets that happen and turns you back into your Pokémon when the conversation is over and you walk off.
 
-Crafting, sitting and opening doors don't show their button prompts while you're transformed. Turn back with ZL + L3 for those: a Pokémon has no animations for them anyway.
-
 If the game changes your form any other way, the mod turns you into your Pokémon again half a second later. If that keeps happening (more than 3 times in 20 seconds), the mod leaves it and you count as turned back: ZL + L3 transforms you again.
 
 `pkp.log` notes each of these (`an interaction turns the player human`, `the interaction is over`, `the game turned the player into form ...`, `the game asked to turn the player into form ...`), plus `trace` lines of every form change while transformed. Please include those lines when you report a problem.
+
+## Doors, crafting, the bag and building (1.7.0)
+
+Since 1.7.0 a transformed player can open doors, use the crafting bench and boxes, open the bag, pick things up, and hold and place blocks, as the human does. Before, none of their prompts showed while you were transformed.
+
+Why they were hidden: the game gives every non-human form of the player a flag (`isDitto`, player `+0x378D`) that makes it treat you as its Ditto blob and skip the human's things: the placement preview, held items, the bag and the button prompts. The mod clears that flag once you have transformed (the game sets it again on every form change, so the mod clears it each time). The setting **Use doors, the crafting bench, the bag and building while transformed** (on by default) switches this off.
+
+Some of the human's things don't suit a Pokémon, so the mod keeps them away:
+
+- **Chairs and beds:** the prompt still shows, but A does nothing while you're transformed. A Pokémon has no sitting or lying-down animation: in a test build, sitting down as a Pokémon locked moving, menus, moves and prompts, even after turning back, until the save was reloaded. The mod answers "no" where the game asks whether you can sit on that chair or lie on that bed (hook points `chair_use` and `bed_use`), before anything changes. Turn back with ZL + L3 to sit.
+- **Items in your hand:** whatever you pick up goes into the bag as usual, but nothing is shown in your Pokémon's hand. The game puts the picked-up item on the human's hand; a Pokémon has no such hand, so the item stayed at your Pokémon's feet until you opened the bag (hook point `attach`).
+- **ZR:** with the flag cleared, the game would also start the human's ZR action, which looks like an emote on a Pokémon and blocks the ability. While you're transformed the game doesn't see ZR, so it stays the ability and flying button.
+
+`pkp.log` notes these: `interacting: <Pokémon> (form N) can use doors, the bench, the bag and build`, `no sitting for ...`, `no lying down for ...` and `nothing in hand for ...`.
 
 ## Link Play
 
@@ -86,6 +99,10 @@ Why: the game does send your chosen form to the other players, but a game only c
 Tested in Link Play with 1.4.0: transforming, walking, running, jumping and flying, changing Pokémon, turning back, both players in the same Pokémon, pushing each other, abilities (the other player sees the animation and the result) and talking to Pokémon while transformed.
 
 **Ending a session while transformed** (fixed in 1.5.0): back in your own game, the host's Pokémon looked broken until they changed Pokémon, and the guest's own character stayed broken until a restart. When a session ends the game resets the world and unloads every Pokémon's animations, but the mod still counted the ones it had loaded as loaded, so it skipped loading them again (the host). The end-of-session message also turns the guest human, and the mod then took a hold on the human animations and let it go after the reset, which took away the game's own hold on them (the guest). 1.5.0 notices the reset (a new hook point, `motion_reset`) and forgets what it had loaded, and never touches the human animations. `pkp.log` notes the reset: `the game reset every Pokemon's animations ...`.
+
+**Abilities working only once** (fixed in 1.7.0): Grow (and sometimes the others) worked once, then said "busy" until you jumped or transformed again. On a resident the game's own Pokémon code ends the Grow action; on you nothing did, so the game thought it was still playing and refused the next one. The mod now ends the action it started once the effect has happened (when you use the ability again, or 3 seconds later), with the same call the game uses when a jump interrupts an action.
+
+**Blank eyes while swimming** (fixed in 1.7.0): as Froakie, Greninja, Cramorant and others, the eyes vanished in water. In water the game gives a player character its underwater face (face 22, made for the human and Ditto's Surf form); a Pokémon's model has no such face. The new hook point `face` (`main+0x2666C4`, just before the game sets the face) keeps the Pokémon's usual face instead, for you and for other players shown as a Pokémon.
 
 **Crashes with three or four players** (fixed in 1.6.0): a game could crash (`pkp_crash.txt`: access violation reading `0xffffffffffffffff` in `f_71006a10e0`) right after another player changed into a Pokémon. Up to 1.5.0 the mod asked for the Pokémon form first and loaded its animations afterwards. But the game builds a model only when its animations are loaded: it threw the old model away, built nothing, and a job the game runs every frame for the four players kept using the thrown-away model until the mod built it again a few frames later. Usually that memory was still intact; when something had reused it, the game crashed. Every game sees every other player's changes, so with more players (and someone flicking through Pokémon) it became likely. Since 1.6.0 the mod loads a Pokémon's animations first and only then asks for the form, for your own character and the others', so the model is built once, with its animations. A model the game sets up by itself before they are loaded is built as the usual character for that moment instead. The animations stay loaded while the character is in that Pokémon (also while a talk turns you human) and are let go 3 seconds after it changes. The same applied to your own transformations, alone too, just far more rarely.
 
@@ -102,6 +119,7 @@ The emulator version is an IPS patch plus a cheat file. Recompia runs the game a
 - the animation loading (so non-resident Pokémon are not invisible) calls the game's own package and motion-set functions (`call_guest`), as the patch did. Since 1.6.0 it happens before the form is requested: a form's definition record is looked up the way the game's model setup does it (the definitions table's vfuncs 0x38 and 0x30), its packages (animations: the motion set's resource; model: definition `+0xC6`, which the model build `main+0x69DBE0` checks) are requested, and the motion set is acquired once they have loaded. The model setup hook builds the human instead of a form whose packages are not loaded, because the game would otherwise leave the model slot empty while the per-frame model parameter job (`main+0x6A10E0`) still reads it (the 1.5.0 Link Play crash). The mod's calls to these functions go one at a time (several players' updates run on different threads);
 - world reset (1.5.0): the game's "release every motion set" (`main+0x8D12C0`, called only from its world reset `main+0xB6320`, which also runs when a Link Play session ends) is a hook point too; the mod forgets the animations it had loaded there, without releasing anything;
 - Link Play (1.4.0): the same update runs for the other players' characters. Each game receives the others' wanted form (`main+0x271360` stores it), but changes their form only through a form's transformation action (`main+0x2F6FCC`), which only the game's own forms have. So the mod loads the Pokémon's animations, then requests the form on their character itself, turns them back the same way, and keeps the stand-up stretch off them in the probe hook;
+- interacting (1.7.0): the player's `isDitto` byte (`+0x378D`) is cleared once the form has settled; a chair's "can this player sit" (`main+0x7C1838`) and a bed's (`main+0x79D948`) answer no for a transformed player at their entry, before they start the sit motion and set the player's activity (`[main+0x35650E8] + 0x140`, 15 for sitting, which stayed set); the player's hand-attachment manager (player `+0xFB0`, 14 slots of a fixed kind, the picked-up item is kind 7) gets nothing from `main+0x2A5D5C` while transformed;
 - abilities: the residents' specialty actions (Burn 700, Water 703, Bubble 705, Grow 706, Generate 709) only animate when the player asks for them, because the game applies their effect for residents only. So the mod plays the action for the animation and calls the effect itself on the cell in front of the player (found as the game finds the target of the player's own moves): Grow `main+0x1F1200`, Burn and Generate `main+0x77CEA0` (the object at the cell, as a town Pokémon), Bubble the handler of action 705, the Water Gun's hit `main+0x3694C0`.
 
 A test slot in unused game memory (`main+0x3D14D00`, used by nothing in normal play) lets a script on the PC run single ability steps; it does nothing unless a script writes its marker.

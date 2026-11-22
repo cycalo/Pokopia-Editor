@@ -47,6 +47,14 @@
 
 MT_DECLARE_MOD()
 
+/* The Switch / emulator build fills two unused game functions; the first is full, so these helpers go to the second
+   (build_emulator.py places .text2.* there). Nothing on Recompia. */
+#ifdef PAP_SWITCH
+#define CAVE2_FN __attribute__((section(".text2.moved")))
+#else
+#define CAVE2_FN
+#endif
+
 /* ---------------------------------------------------------------- game offsets (main-relative, 2.0.1) */
 #define PLAYER_GLOBAL 0x3561928ull   /* [[main+0x3561928] + 0x30] = the player character */
 #define ENTITY_TABLE  0x356A778ull   /* [[main+0x356A778] + 0x58] = the player's entity */
@@ -114,6 +122,9 @@ MT_DECLARE_MOD()
 #define FN_BUBBLE     0x5A60E0ull    /* its execute (handler, controller, args): the owner must be a town Pokemon */
 #define ACT_GENERATE  709
 #define ACT_BUBBLE    705            /* a resident's Bubble: the animation for it */
+#define ACT_HUMAN_ZR  881            /* what the game starts on ZR when isDitto is 0 (an emote-like motion on a Pokemon): see "interacting" */
+#define FN_END_ACTION 0x27E804ull    /* (action controller, 1) the game's cancel of the action playing (what its cancel vfunc 0x27E770, e.g. a
+                                        jump, does): the owner's vfunc 0xC0, the handlers' end, the controller's action 0 */
 #define FN_HAS_LAYER  0x38DF8ull     /* (world, &u8 kind, &cell) -> 1: the cell holds a block of that kind (a query) */
 #define WORLD         0x34EFC98ull   /* [main+this] = the world's blocks */
 #define SLUDGE        8              /* the block kind Bubble works on (the sludge on Bleak Beach) */
@@ -149,6 +160,7 @@ enum { AB_GROW, AB_BURN, AB_WATER, AB_GENERATE, AB_KINDS };
 static const char *const AB_NAMES[] = {"Grow", "Burn", "Water", "Generate"};
 #endif
 static _Atomic int g_abilities = 1, g_ability = -1;   /* -1: the Pokemon's own (ABILITY_OF) */
+static _Atomic int g_interact = 1;   /* doors, the crafting bench, the bag and building while transformed (1.7) */
 static uint32_t g_prev_buttons;
 static int g_prev_key_on, g_prev_key_off, g_prev_key_ability;
 enum { PRESS_NONE, PRESS_ZR, PRESS_COMBO, PRESS_KEY };
@@ -396,7 +408,7 @@ static void hold_fill(Hold *h, uint64_t rec, uint32_t now) {
 }
 /* The holds of a form: found, or taken now (packages requested). NULL when every hold is in use. rec: the form's definition record
    when the caller has it (the model setup), else 0. */
-static Hold *hold_take(Holds *hs, uint16_t form, uint64_t rec, uint64_t now_full) {
+CAVE2_FN static Hold *hold_take(Holds *hs, uint16_t form, uint64_t rec, uint64_t now_full) {
     uint32_t gen = atomic_load(&g_reset_gen), now = (uint32_t)now_full;
     Hold *h = NULL, *free_one = NULL;
     for (int i = 0; i < HOLDS; i++) {
@@ -417,7 +429,7 @@ static Hold *hold_take(Holds *hs, uint16_t form, uint64_t rec, uint64_t now_full
 /* LOAD_READY once the form's packages are loaded; then its motion set is acquired (that binds the animations to it).
    A form whose definition could not be looked up counts as ready: the form is requested, and the model setup, which has the
    game's own record of it, takes the holds then (building the human until they are loaded, see prepare_model). */
-static int hold_ready(Hold *h, uint64_t now_full) {
+CAVE2_FN static int hold_ready(Hold *h, uint64_t now_full) {
     uint32_t now = (uint32_t)now_full;
     uint64_t mgr = pkg_mgr();
     if (!h->filled) {
@@ -591,6 +603,7 @@ static void read_settings(void) {
     atomic_store(&g_cycle, H->config_bool(M, "cycle"));
     atomic_store(&g_messages, H->config_bool(M, "messages"));
     atomic_store(&g_abilities, H->config_bool(M, "abilities"));
+    atomic_store(&g_interact, H->config_bool(M, "interact"));
     const char *ab = H->config_string(M, "ability");
     int kind = -1;
     for (int i = 0; ab && i < AB_KINDS; i++)
@@ -785,8 +798,11 @@ static void buttons(uint64_t P) {
         apply_wanted(P);
         return;
     }
-    /* The stick clicks belong to the combos while ZL is held: the game does not see them then. */
-    block((b & MT_PAD_ZL) ? MT_PAD_LSTICK | MT_PAD_RSTICK : 0, 0);
+    /* The stick clicks belong to the combos while ZL is held: the game does not see them then. While transformed with
+       interacting on, ZR is this mod's alone (flying, the ability): with isDitto 0 the game would start its human ZR action. */
+    uint32_t hide = (b & MT_PAD_ZL) ? MT_PAD_LSTICK | MT_PAD_RSTICK : 0;
+    if (atomic_load(&g_interact) && atomic_load(&g_form) && (atomic_load(&g_abilities) || atomic_load(&g_fly))) hide |= MT_PAD_ZR;
+    block(hide, 0);
     int transformed = atomic_load(&g_form) || g_want > 0;
     if (key_menu || combo(b, was, MT_PAD_RSTICK)) menu_open();
     else if (combo(b, was, MT_PAD_LSTICK)) want(transformed ? 0 : selected(), 0);   /* ZL + L3: there and back */
@@ -850,6 +866,76 @@ static void keep_form(uint64_t P) {
     mt_logf(H, M, MT_LOG_INFO, "the game turned the player into form %u: back into %s (form %u)", cur, form_name(form), form);
     request_form(P, form);
 }
+
+/* ---------------------------------------------------------------- interacting (1.7)
+ * Setting a form sets the player's isDitto byte (P+0x378D, FUN_71002f2058) to 1 for every form but the human: the game then treats
+ * the player as its Ditto blob and skips the human's things, so a transformed player could not open doors, use the crafting bench,
+ * open the bag or build (placement preview main+0x3DD63C, held item 0x277BF4 / 0x278598, menu check 0x259EE4, event queue
+ * 0x45D5A0 and more). Tested live (2026-11-21): with it at 0 all of these work for a Pokemon, and so do the abilities, but ZR then
+ * also starts the human's ZR action (ACT_HUMAN_ZR), which buttons() hides from the game. The game writes the byte only when the form
+ * changes, so once the mod's form is in place and settled this sets it to 0 (back to 1 when the setting is turned off). */
+static void interact_tick(uint64_t P) {
+    uint16_t form = atomic_load(&g_form), cur = 0, pend = 0;
+    uint8_t go = 1, ditto = 0, target = atomic_load(&g_interact) ? 0 : 1;
+    static uint16_t told;
+    if (!form || g_load || !r16(P + P_FORM_NOW, &cur) || cur != form || !mod_form(cur)) return;
+    if (!rd(P + P_REQ_GO, &go, 1) || go || !r16(P + P_REQ_STATE, &pend) || pend || now_ms() - g_last_request < REQUEST_GAP_MS) return;
+    if (!rd(P + P_ISDITTO, &ditto, 1) || ditto == target) return;
+    w8(P + P_ISDITTO, target);
+    if (told != cur || target) {
+        told = target ? 0 : cur;
+        mt_logf(H, M, MT_LOG_INFO, "interacting: %s (form %u) %s", form_name(cur), cur, target ? "back to the game's Pokemon rules (setting off)" : "can use doors, the bench, the bag and build");
+    }
+}
+
+/* Seats. What a player is busy with is [main+0x35650E8] + 0x140 + 4 * slot (-1 none). Sitting while transformed set it to 15 and
+   it stayed: the seat waits for a sit motion a Pokemon does not have, and menus, moves, prompts and walking stayed locked, even as
+   the human, until the save was reloaded (found live 2026-11-21). Using a placed object goes through FUN_710074FB80 (kind,
+   start/stop, cell, player slot), which sets that: a chair is kind 6 (15), a bed kind 7 (16), a box kind 8 (17), the crafting bench
+   kind 9 (18), and doors do not go through it (logged live 2026-11-22). A chair's FUN_71007C1838 (x0 the object, w3 bit 0 = only
+   asking whether it can be used) and a bed's FUN_710079D948 (the same in w2) start the sit / lie-down motion (FUN_7100722B30 /
+   0x7232C0) before they get there, so for the transformed player both answer "no" at their entry, before they change anything:
+   pressing A at a chair or bed does nothing (the prompt still shows). The acting player is [[PLAYER_GLOBAL] + 0x30], or + 0x38
+   when the object's bit 13 of +10 is set and [main+0x3561880] + 0x232 is set (FUN_71000207d4), as both functions pick it.
+   Confirmed in game 2026-11-22. */
+CAVE2_FN static int no_seat(MtHookCtx *c, int ask_reg, const char *what) {
+    uint64_t obj = H->reg_get(c, 0), g = r64(MAIN + PLAYER_GLOBAL), P = player(), net = r64(MAIN + 0x3561880ull);
+    uint16_t flags = 0, cur = 0;
+    uint8_t second = 0;
+    static uint64_t told;
+    if (!P || !g || !rd(obj + 10, &flags, 2)) return MT_CONTINUE;
+    if (((flags >> 13) & 1) && net) rd(net + 0x232, &second, 1);
+    if (r64(g + (second ? 0x38 : 0x30)) != P || !r16(P + P_FORM_NOW, &cur) || !mod_form(cur)) return MT_CONTINUE;
+    if (told != obj && !(H->reg_get(c, ask_reg) & 1)) {
+        told = obj;
+        mt_logf(H, M, MT_LOG_INFO, "no %s for %s (form %u): a Pokemon would be stuck there", what, form_name(cur), cur);
+    }
+    H->reg_set(c, 0, 0);
+    return MT_HANDLED;
+}
+/* Hand attachments. The player's attachment manager is P+0xFB0 (14 slots of 0x50 from +0x10, each with a fixed kind at +0x18:
+   1, 3, 4, 2, 7, 74, 90; +0x5BA on). FUN_71002A5D5C (x0 the manager, w1 model id, ..., w5 kind, x6 placement or 0) puts a model
+   on the human's hand, FUN_71002A5150 (manager, kind) takes it off. Picking an item up attaches it as kind 7, slot 4 (found live
+   2026-11-22 with hardware write watchpoints, re/live/watchw.py: P+0x1100 = the slot's model, P+0x110C = 0x3E9, the manager's
+   +0x556 = P+0x1506 set to 1). A Pokemon has no such hand: the item stayed at its feet until the bag or a form change took it
+   off. A Pokemon holds nothing, so for a transformed player nothing is attached (confirmed in game 2026-11-22). */
+#define P_ATTACH 0xFB0ull
+static int h_attach(MtHookCtx *c, void *u) {
+    (void)u;
+    uint64_t P = player();
+    uint16_t cur = 0;
+    uint32_t kind = (uint32_t)H->reg_get(c, 5) & 0xFF;
+    static uint32_t told;
+    if (!P || H->reg_get(c, 0) != P + P_ATTACH || !r16(P + P_FORM_NOW, &cur) || !mod_form(cur)) return MT_CONTINUE;
+    if (kind < 32 && !(told >> kind & 1)) {
+        told |= 1u << kind;
+        mt_logf(H, M, MT_LOG_INFO, "nothing in hand for %s (form %u): attachment kind %u, model %u", form_name(cur), cur, kind,
+                (unsigned)(H->reg_get(c, 1) & 0xFFFF));
+    }
+    return MT_HANDLED;
+}
+static int h_chair_use(MtHookCtx *c, void *u) { (void)u; return no_seat(c, 3, "sitting"); }
+static int h_bed_use(MtHookCtx *c, void *u) { (void)u; return no_seat(c, 2, "lying down"); }
 
 static void remote_model(MtHookCtx *c, uint64_t ch, uint16_t res);   /* Link Play, below */
 
@@ -1031,11 +1117,18 @@ out:
  * script on the PC writes into the game's memory, to try cells and actions without a rebuild. */
 #define ABILITY_EFFECT_MS   700   /* from the animation's start to the effect */
 #define ABILITY_COOLDOWN_MS 600
+/* Some specialty actions never finish on the player (Grow 706 stays "playing" for good: the end comes from the resident's job code),
+   and while one is listed as playing the game refuses the next action, so the ability worked once until a jump cancelled it. So the
+   action the ability started is ended with the game's own cancel once its effect is done: at once when the ability is used again,
+   else ABILITY_END_MS after its start (longer than any specialty animation on the player, Water's 2.4 s the longest). */
+#define ABILITY_END_MS     3000
 
 typedef struct { int16_t x, y, z; int dir; float px, py, pz, yaw; } Target;
 static int g_ab_phase;   /* 1: the animation plays, the effect comes at g_ab_at */
 static int g_ab_kind;
 static uint64_t g_ab_at, g_ab_ready_at;
+static uint16_t g_ab_action;   /* the action the last use started, while the controller may still list it as playing (0: none) */
+static uint64_t g_ab_started;
 static Target g_ab_target;
 static int g_ab_bubble;   /* Water: this use is a Bubble on sludge, not the Water Gun */
 
@@ -1094,7 +1187,24 @@ static int request_action(uint64_t P, uint16_t id) {   /* 1 started, 0 refused, 
     if (!f || H->call_guest(f, &c) != MT_OK) return -1;
     return (int)(c.x[0] & 1);
 }
-static int grow_at(int16_t x, int16_t y, int16_t z) {   /* 1 something grew, 0 nothing did, -1 the call failed */
+/* Ends the action the ability started if the controller still lists it as playing: 1 ended, 0 nothing to end, -1 the call failed */
+CAVE2_FN static int end_ability_action(uint64_t P, const char *why) {
+    uint64_t ctl = r64(P + P_ACTIONS);
+    uint16_t a = action_now(P), id = g_ab_action;
+    MtCall c;
+    g_ab_action = 0;
+    if (!id || !ctl || a != id) return 0;
+    memset(&c, 0, sizeof c);
+    c.x[0] = ctl, c.x[1] = 1;
+    if (H->call_guest(MAIN + FN_END_ACTION, &c) != MT_OK) {
+        mt_logf(H, M, MT_LOG_WARN, "ability: ending action %u failed", id);
+        return -1;
+    }
+    a = action_now(P);
+    mt_logf(H, M, MT_LOG_INFO, "ability: action %u was still playing (%s): ended%s", id, why, a == id ? ", but it still plays" : "");
+    return a == id ? -1 : 1;
+}
+CAVE2_FN static int grow_at(int16_t x, int16_t y, int16_t z) {   /* 1 something grew, 0 nothing did, -1 the call failed */
     uint64_t field = r64(MAIN + FIELD);
     int16_t cell[3] = {x, y, z};
     MtCall c;
@@ -1105,7 +1215,7 @@ static int grow_at(int16_t x, int16_t y, int16_t z) {   /* 1 something grew, 0 n
     return (int)(c.x[0] & 1);
 }
 /* A town Pokemon (id top nibble 2) to act as: the same species as the player's form when one lives here, else any. 0: none */
-static uint64_t town_pokemon(uint16_t form) {
+CAVE2_FN static uint64_t town_pokemon(uint16_t form) {
     uint64_t t = r64(MAIN + ENTITY_TABLE), any = 0;
     uint16_t id, sp;
     for (int i = 1; t && i < 0x4B; i++) {
@@ -1116,14 +1226,14 @@ static uint64_t town_pokemon(uint16_t form) {
     }
     return any;
 }
-static uint16_t burner_id(uint16_t form) {
+CAVE2_FN static uint16_t burner_id(uint16_t form) {
     uint64_t o = town_pokemon(form);
     uint16_t id = 0;
     if (o) r16(o + P_ID, &id);
     return id;
 }
 /* The object placed at the cell reacts as to a resident's specialty: kind BURN_HANDLER burns it, POWER_HANDLER powers it */
-static int burn_at(uint16_t by, int16_t x, int16_t y, int16_t z, uint32_t kind) {   /* 1 the object reacted, 0 not (or none), -1 failed */
+CAVE2_FN static int burn_at(uint16_t by, int16_t x, int16_t y, int16_t z, uint32_t kind) {   /* 1 the object reacted, 0 not (or none), -1 failed */
     uint64_t objects = r64(MAIN + OBJECTS);
     MtCall c;
     if (!objects || !by || H->mem_write(MAIN + SLOT + 0x36, &by, 2) != MT_OK) return -1;
@@ -1132,7 +1242,7 @@ static int burn_at(uint16_t by, int16_t x, int16_t y, int16_t z, uint32_t kind) 
     if (H->call_guest(MAIN + FN_OBJECT_ACT, &c) != MT_OK) return -1;
     return (int)(c.x[0] & 1);
 }
-static int water_at(uint64_t P, int16_t x, int16_t y, int16_t z) {   /* 1 something was watered, 0 not, -1 failed */
+CAVE2_FN static int water_at(uint64_t P, int16_t x, int16_t y, int16_t z) {   /* 1 something was watered, 0 not, -1 failed */
     int16_t cell[3] = {x, y, z};
     uint16_t id = 0;
     MtCall c;
@@ -1144,7 +1254,7 @@ static int water_at(uint64_t P, int16_t x, int16_t y, int16_t z) {   /* 1 someth
 }
 /* Water's Bubble (what Piplup does to the sludge on Bleak Beach): the resident handler's execute, with a town Pokemon's action
    controller as its owner (it checks for one) and the cell as the argument. It reports nothing back: 1 called, -1 failed. */
-static int bubble_at(uint16_t form, int16_t x, int16_t y, int16_t z) {
+CAVE2_FN static int bubble_at(uint16_t form, int16_t x, int16_t y, int16_t z) {
     uint64_t o = town_pokemon(form), ctl = o ? r64(o + P_ACTIONS) : 0, gm = r64(MAIN + GAME_MGR), ht = gm ? r64(gm + 0xA8) : 0;
     uint64_t h = ht ? r64(ht + 0x4470 + 8ull * BUBBLE_HANDLER) : 0;
     uint32_t args[5] = {(uint16_t)x, (uint16_t)y, (uint16_t)z, 0, 4};   /* x, y, z, no request to complete, 4 values */
@@ -1156,7 +1266,7 @@ static int bubble_at(uint16_t form, int16_t x, int16_t y, int16_t z) {
 }
 /* 1 when sludge that has not been bubbled lies where a Bubble at the cell reaches: the cells with |dx| + |dz| < 3, at the cell's
    height and one lower (the area Bubble's handler works on). */
-static int sludge_at(int16_t x, int16_t y, int16_t z) {
+CAVE2_FN static int sludge_at(int16_t x, int16_t y, int16_t z) {
     uint64_t world = r64(MAIN + WORLD);
     uint8_t kind = SLUDGE;
     if (!world || H->mem_write(MAIN + SLOT + 0x38, &kind, 1) != MT_OK) return 0;
@@ -1224,6 +1334,15 @@ static void ability_effect(uint64_t P, int kind, const Target *t) {
     mt_logf(H, M, MT_LOG_INFO, "ability %s: nothing at (%d, %d to %d, %d)", AB_NAMES[kind], t->x, t->y - 1, t->y + 1, t->z);
     tell(NONE[kind]);
 }
+/* Ends the game's human ZR action (interacting on, isDitto 0) so the ability can start: 1 ended */
+static int end_human_zr(uint64_t P) {
+    uint64_t ctl = r64(P + P_ACTIONS);
+    MtCall c;
+    if (!ctl) return 0;
+    memset(&c, 0, sizeof c);
+    c.x[0] = ctl, c.x[1] = 1;
+    return H->call_guest(MAIN + FN_END_ACTION, &c) == MT_OK && action_now(P) != ACT_HUMAN_ZR;
+}
 static void ability_start(uint64_t P, uint64_t now) {
     int kind = atomic_load(&g_ability), ok;
     uint16_t a = action_now(P), form = atomic_load(&g_form);
@@ -1244,6 +1363,8 @@ static void ability_start(uint64_t P, uint64_t now) {
         tell("Land first to use the ability");
         return;
     }
+    if (!action_free(a) && g_ab_action && a == g_ab_action && end_ability_action(P, "used again") > 0) a = action_now(P);
+    if (a == ACT_HUMAN_ZR && end_human_zr(P)) a = action_now(P);   /* the game saw ZR first (no pad_block on a Switch) */
     if (!action_free(a)) {
         mt_logf(H, M, MT_LOG_INFO, "ability %s: busy (action %u)", AB_NAMES[kind], a);
         return;
@@ -1257,6 +1378,8 @@ static void ability_start(uint64_t P, uint64_t now) {
     g_ab_bubble = kind == AB_WATER && sludge_at(t.x, t.y, t.z);   /* sludge not bubbled yet: Bubble it, else the Water Gun */
     ok = request_action(P, g_ab_bubble ? ACT_BUBBLE : ACT[kind]);
     if (ok <= 0 && g_ab_bubble) ok = request_action(P, ACT_WATER);   /* no Bubble animation: the water one */
+    a = action_now(P);   /* what the request started (the Bubble may have fallen back to Water's) */
+    g_ab_action = ok > 0 && !action_free(a) && a != 0xFFFF ? a : 0, g_ab_started = now;
     mt_logf(H, M, MT_LOG_INFO, "ability %s: animation %s, cell in front (%d, %d, %d), facing %d (player at %.0f %.0f %.0f, yaw %.2f)",
             g_ab_bubble ? "Water (Bubble)" : AB_NAMES[kind], ok > 0 ? "started" : "refused", t.x, t.y, t.z, t.dir, t.px, t.py, t.pz, t.yaw);
     g_ab_kind = kind, g_ab_target = t, g_ab_phase = 1, g_ab_at = now + ABILITY_EFFECT_MS;
@@ -1281,6 +1404,11 @@ static void abilities(uint64_t P) {
             g_ab_ready_at = now + ABILITY_COOLDOWN_MS;
         }
         return;
+    }
+    if (g_ab_action) {   /* the effect is done: the action finished by itself, something else replaced it, or it is left playing */
+        uint16_t a = action_now(P);
+        if (a != g_ab_action) g_ab_action = 0;
+        else if (now >= g_ab_started + ABILITY_END_MS) end_ability_action(P, "past its animation");
     }
     if (!press || now < g_ab_ready_at) return;
     if (press == PRESS_ZR && atomic_load(&g_fly) && can_fly()) return;   /* a flying Pokemon's ZR flies */
@@ -1563,6 +1691,7 @@ static int h_player_tick(MtHookCtx *c, void *u) {   /* blr x8 near the top of th
     buttons(P);
     load_tick(P);
     keep_form(P);
+    interact_tick(P);
     uint16_t cur = 0;
     r16(P + P_FORM_NOW, &cur);
     holds_tick(&g_holds, cur, atomic_load(&g_form), g_load, now_ms());
@@ -1571,7 +1700,7 @@ static int h_player_tick(MtHookCtx *c, void *u) {   /* blr x8 near the top of th
 #endif
     if (!g_menu && atomic_load(&g_form) && atomic_load(&g_fly)) fly(P);
     if (!g_menu && atomic_load(&g_form) && atomic_load(&g_abilities)) abilities(P);
-    else g_ab_phase = 0;
+    else g_ab_phase = 0, g_ab_action = 0;
     return MT_CONTINUE;
 }
 
@@ -1640,6 +1769,25 @@ static int h_probe(MtHookCtx *c, void *u) {
     return MT_HANDLED;
 }
 
+/* The face (1.6.1). Each frame the game picks a player character's face (main+0x266278) and sets it on the model (main+0x71B770:
+   the model slot's +0xBE8, 1..30). In water, unless the form is Ditto's Magnet Rise one, it forces face 22, the human's and Surf
+   Ditto's underwater face. A Pokemon's model has no such face: the eyes of Froakie, Greninja, Cramorant and others went blank
+   while swimming (measured live: +0xBE8 22 swimming, 1 on land, nothing else of the model changed). Hook at main+0x2666C4, just
+   before the call: x19 = the character, x20 = its face state (+0x10 = the face chosen before the water override), w22 = the face.
+   For a character in one of this mod's forms (the player or another player) face 22 becomes the face it would have had. */
+#define FACE_UNDERWATER 22
+#define FACE_STATE_BASE 0x10
+static int h_face(MtHookCtx *c, void *u) {
+    (void)u;
+    uint64_t ch = H->reg_get(c, 19), st = H->reg_get(c, 20);
+    uint16_t form = 0;
+    uint8_t face = 1;
+    if (((uint32_t)H->reg_get(c, 22) & 0xFF) != FACE_UNDERWATER || !r16(ch + P_FORM_NOW, &form) || !mod_form(form)) return MT_CONTINUE;
+    if (!rd(st + FACE_STATE_BASE, &face, 1) || face < 1 || face > 30 || face == FACE_UNDERWATER) face = 1;
+    H->reg_set(c, 22, face);
+    return MT_CONTINUE;
+}
+
 /* ---------------------------------------------------------------- entry */
 #ifndef PAP_SWITCH
 MT_EXPORT int mod_init(const MtHost *host, MtMod *mod) {
@@ -1653,7 +1801,8 @@ MT_EXPORT int mod_init(const MtHost *host, MtMod *mod) {
         {"form_get", h_form_get},       {"form_set", h_form_set}, {"request_state", h_request_state},
         {"probe", h_probe},
         {"char_setup", h_char_setup},   {"player_tick", h_player_tick}, {"to_human", h_to_human},
-        {"motion_reset", h_motion_reset},
+        {"motion_reset", h_motion_reset}, {"face", h_face}, {"chair_use", h_chair_use}, {"bed_use", h_bed_use},
+        {"attach", h_attach},
     };
     for (size_t i = 0; i < sizeof hooks / sizeof hooks[0]; i++) {
         int rc = H->hook(M, hooks[i].point, hooks[i].fn, NULL);
@@ -1689,4 +1838,8 @@ PAP_POINT(char_setup, h_char_setup)
 PAP_POINT(player_tick, h_player_tick)
 PAP_POINT(to_human, h_to_human)
 PAP_POINT(motion_reset, h_motion_reset)
+PAP_POINT(face, h_face)
+PAP_POINT(chair_use, h_chair_use)
+PAP_POINT(bed_use, h_bed_use)
+PAP_POINT(attach, h_attach)
 #endif

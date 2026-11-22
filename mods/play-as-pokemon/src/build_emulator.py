@@ -8,7 +8,7 @@ nn::hid imports, the clock). It runs inside the game:
 
   code       main+0x6B32C0, a function nothing calls or points to (the build checks the bytes it replaces: 0x4798 of them)
   variables  unused bss main+0x3D15000..0x3D16000 (zero at start; the initialised ones are copied there at the first hook)
-  hooks      the eight hook points of the Recompia mod's mod.toml (the same game instructions, checked here): each becomes a branch
+  hooks      every hook point of the Recompia mod's mod.toml (build.py HOOKS) (the same game instructions, checked here): each becomes a branch
              to a trampoline that saves every register, calls the handler, and then either runs the game's own instruction and
              goes on (MT_CONTINUE) or returns from the game's function (MT_HANDLED), as Modtopia's take_over does
   choice     u16 main+0x3D14C06 = the Pokemon ZL + L3 turns you into: the cheat sets it, the Pokopia Editor's live controls too
@@ -57,7 +57,7 @@ def run(cmd):
     return r.stdout
 
 
-MID = {'char_setup', 'player_tick'}   # hook points inside a function: everything may be live there
+MID = {'char_setup', 'player_tick', 'face'}   # hook points inside a function: everything may be live there
 
 
 def trampolines(hooks):
@@ -163,7 +163,7 @@ def main():
         f.write(f'SECTIONS {{\n  . = {CAVE:#x};\n'
                 '  .text : { *play_as_pokemon.o(.text .text.*) }\n'
                 f'  . = {CAVE2:#x};\n'
-                '  .text2 : { KEEP(*(.text.tramp)) *(.text .text.*) *(.rodata .rodata.*) }\n'
+                '  .text2 : { KEEP(*(.text.tramp)) *(.text .text.* .text2.*) *(.rodata .rodata.*) }\n'   # .text2.*: mod code marked CAVE2_FN
                 '  pap_data_load = ALIGN(16);\n'
                 f'  .data {RAM:#x} : AT(pap_data_load) {{ pap_data_start = .; *(.data .data.*) . = ALIGN(16); pap_data_end = .; }}\n'
                 '  .bss (NOLOAD) : { *(.bss .bss.*) *(COMMON) pap_bss_end = .; }\n'

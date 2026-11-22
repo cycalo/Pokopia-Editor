@@ -18,7 +18,7 @@ LISTS = os.path.join(REPO, 'mods', 'play-as-pokemon')
 DIST = os.path.join(REPO, 'dist')
 
 MOD_ID = 'play_as_pokemon'
-VERSION = '1.6.0'
+VERSION = '1.7.0'
 ABILITIES = ['Grow', 'Burn', 'Water', 'Generate']   # the order of AB_* in play_as_pokemon.c
 ABILITY_AUTO = 'Auto (the Pokémon’s own)'
 # Which Pokemon have each ability (the in-game specialty lists; the game's own table for it is not found yet). A Pokemon in none of
@@ -48,6 +48,10 @@ HOOKS = [
     ('player_tick', 0x2FACE0, 0xD63F0100, 'blr x8 in the player update: buttons, animations, flying'),
     ('to_human', 0x455580, 0xD503237F, 'turns the player human for an interaction (entry): noted, the player turns back after it (talking)'),
     ('motion_reset', 0x8D12C0, 0xD503237F, 'releases every motion set (entry), in the world reset (end of a Link Play session): the mod forgets what it loaded'),
+    ('face', 0x2666C4, 0x2A1503E0, 'mov w0, w21 before setting a player character\'s face: no underwater face 22 for a Pokemon (blank eyes)'),
+    ('chair_use', 0x7C1838, 0xD503237F, 'a player sits on a chair (entry): not while transformed (a Pokemon gets stuck there)'),
+    ('attach', 0x2A5D5C, 0xD503237F, 'puts a model on the player hand (entry): nothing for a transformed player (a picked-up item stuck at the feet)'),
+    ('bed_use', 0x79D948, 0xD503237F, 'a player lies down on a bed (entry): not while transformed (a Pokemon gets stuck there)'),
 ]
 
 DESCRIPTION = (
@@ -193,6 +197,13 @@ def write_mod_toml(a_l, m_z, exp):
         f'default = {toml_str(ABILITY_AUTO)}',
         'label = "Ability"',
         'description = "Grow: the crops and plants in front of you grow a stage, each once, as with a resident\'s Grow. Burn: the object in front of you is burnt (a campfire, Squish Clay). Water: Bubble on sludge that is not bubbled yet, otherwise the Water Gun on what is in front of you (soil, plants, bubbled sludge). Generate: the light or machine in front of you is powered. Auto: the Pokémon’s own specialty, if it is one of these."',
+        '',
+        '[[settings]]',
+        'key = "interact"',
+        'type = "bool"',
+        'default = true',
+        'label = "Use doors, the crafting bench, the bag and building while transformed"',
+        'description = "The game otherwise treats a transformed player like its Ditto blob and keeps these to the human. Chairs and beds stay for the human: a Pokémon has no sitting or lying-down animation."',
         '',
         '[[settings]]',
         'key = "cycle"',
