@@ -666,17 +666,18 @@ static void menu_tick(const MtPad *pad, uint32_t was, int key_menu) { (void)pad,
 #else
 /* ---------------------------------------------------------------- the menu
  * Modtopia has no drawing for mods, so the menu is its message box: a list of a few lines around the cursor, shown again
- * whenever it changes. While it is open the game gets no input from the player. Entry 0 is the player's own character,
- * entries 1.. are FORMS (the Pokemon A to Z, then the experimental forms). */
+ * whenever it changes. While it is open the game gets no input from the player. The entries are FORMS (the Pokemon A to Z,
+ * then the experimental forms); turning back is ZL + L3, so the player's own character is not one of them (1.7.1). It opens
+ * on the Pokemon picked last (the one you are, or the one ZL + L3 turns you into). */
 #define MENU_LINES 9
-#define MENU_ENTRIES (FORM_COUNT + 1)
+#define MENU_ENTRIES FORM_COUNT
 enum { NAV_UP = 1, NAV_DOWN = 2, NAV_LEFT = 4, NAV_RIGHT = 8, NAV_OK = 16, NAV_BACK = 32, NAV_PREV = 64, NAV_NEXT = 128 };
 static int g_menu;   /* 0 closed, 1 open, 2 closed but waiting for the buttons to be let go */
 static int g_menu_at, g_prev_key_menu;
 static uint32_t g_nav_was;
 static uint64_t g_nav_repeat, g_menu_shown;
 
-static const char *menu_name(int i) { return i ? FORMS[i - 1].name : "Your own character"; }
+static const char *menu_name(int i) { return FORMS[i].name; }
 static int any_key(const char *a, const char *b) {
     if (!MT_HOST_HAS(H, key_down) || !H->key_down) return 0;
     return H->key_down(M, a) || (b && H->key_down(M, b));
@@ -695,10 +696,10 @@ static void menu_show(void) {
     g_menu_shown = now_ms();
 }
 static void menu_open(void) {
-    uint16_t cur = atomic_load(&g_form) ? atomic_load(&g_selected) : 0;
+    uint16_t cur = atomic_load(&g_form) ? atomic_load(&g_form) : selected();
     g_menu_at = 0;
-    for (int i = 0; cur && i < FORM_COUNT; i++)
-        if (FORMS[i].id == cur) g_menu_at = i + 1;
+    for (int i = 0; i < FORM_COUNT; i++)
+        if (FORMS[i].id == cur) g_menu_at = i;
     g_menu = 1;
     g_nav_was = ~0u;   /* what is held now does not count as a press */
     block(0xFFFF, 1);
@@ -711,13 +712,13 @@ static void menu_close(const char *text) {
 /* The first entry whose name starts with another letter than the cursor's, forwards or backwards (Pokemon only). */
 static int menu_letter(int dir) {
     int i = g_menu_at;
-    if (i < 1 || i > POKEMON_COUNT) return dir > 0 ? 1 : POKEMON_COUNT;
-    char c = FORMS[i - 1].name[0];
-    while (i >= 1 && i <= POKEMON_COUNT && FORMS[i - 1].name[0] == c) i += dir;
-    if (i < 1) return 0;
-    if (i > POKEMON_COUNT) return i <= FORM_COUNT ? i : 0;
+    if (i >= POKEMON_COUNT) return dir > 0 ? 0 : POKEMON_COUNT - 1;   /* from the experimental forms: back into the Pokemon */
+    char c = FORMS[i].name[0];
+    while (i >= 0 && i < POKEMON_COUNT && FORMS[i].name[0] == c) i += dir;
+    if (i < 0) return FORM_COUNT - 1;   /* off the start: to the end, as Up does */
+    if (i >= POKEMON_COUNT) return i < FORM_COUNT ? i : 0;
     if (dir < 0)   /* backwards: to the first name of that letter */
-        while (i > 1 && FORMS[i - 2].name[0] == FORMS[i - 1].name[0]) i--;
+        while (i > 0 && FORMS[i - 1].name[0] == FORMS[i].name[0]) i--;
     return i;
 }
 static void menu_tick(const MtPad *pad, uint32_t was, int key_menu) {
@@ -753,10 +754,8 @@ static void menu_tick(const MtPad *pad, uint32_t was, int key_menu) {
         return;
     }
     if (pressed & NAV_OK) {
-        if (g_menu_at) {
-            atomic_store(&g_selected, FORMS[g_menu_at - 1].id);
-            want(FORMS[g_menu_at - 1].id, 0);
-        } else want(0, 0);
+        atomic_store(&g_selected, FORMS[g_menu_at].id);
+        want(FORMS[g_menu_at].id, 0);
         menu_close(menu_name(g_menu_at));
         return;
     }

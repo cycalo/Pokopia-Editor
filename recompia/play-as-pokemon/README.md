@@ -36,7 +36,7 @@ In the launcher's **Mods** page, or in game with **F1 → Mods**:
 - **Pokémon, A to L** / **Pokémon, M to Z**: the Pokémon. Default: Ditto.
 - **Experimental form**: story objects and the shapes Ditto takes for its moves. The two towers are far larger than the camera expects.
 
-A change made in F1 while you are transformed turns you into the new Pokémon at once. The list and ZL + D-pad Left / Right pick one for this session only: the settings stay as they are.
+The F3 / ZL + R3 list opens on the Pokémon you are, or the one ZL + L3 would turn you into, and lists only Pokémon and forms: turn back with ZL + L3 (1.7.1). A change made in F1 while you are transformed turns you into the new Pokémon at once. The list and ZL + D-pad Left / Right pick one for this session only: the settings stay as they are.
 
 The other settings switch flying, the Left / Right picking, the name message and using doors and the rest while transformed off.
 
