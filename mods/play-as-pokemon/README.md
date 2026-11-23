@@ -59,7 +59,7 @@ In Link Play every player needs the mod. Then the other players see your Pokémo
 
 ## Doors, crafting and the bag
 
-Since 1.7 a transformed Pokémon can open doors, use the crafting bench and boxes, open the bag, pick things up, and hold and place blocks, as your character does. Chairs and beds stay for your character: their prompt shows, but A does nothing while you're a Pokémon, because a Pokémon has no sitting animation and would be stuck there. Picked-up items go into the bag without showing in the Pokémon's hand. Tested in Recompia; the emulator version has the same code, untested in an emulator so far. Details in the [Recompia README](../../recompia/play-as-pokemon/README.md#doors-crafting-the-bag-and-building-170).
+Since 1.7 a transformed Pokémon can open doors, use the crafting bench and boxes, open the bag, pick things up, and hold and place blocks, as your character does. Chairs and beds stay for your character: their prompt shows, but A does nothing while you're a Pokémon, because a Pokémon has no sitting animation and would be stuck there. Picked-up items go into the bag without showing in the Pokémon's hand. Tested in Recompia; the emulator version has the same code, untested in an emulator so far. Details in the [Recompia README](../../recompia/play-as-pokemon/README.md#doors-crafting-the-bag-and-building-170). Since 1.7.1 ZL + D-pad Down is left to the game (lowering the block) while you hold something to place, and the bag opens while flying.
 
 ## Abilities
 
@@ -96,7 +96,7 @@ load/0400A3A01EE4C000/Play as Pokemon/cheats/76A489F3BD3642FA.txt
 Keep **Enable GDB Stub** off, and use the combos only once you're in the world, not on the title screen. After a change, the next one waits about 0.75 s: changing form too fast can crash the game.
 
 ### Recompia (PC)
-Recompia runs the game natively, so it can't use the IPS and cheat files. Use `recompia_play_as_pokemon-1.7.0.pkmod` instead: copy it into Recompia's `mods` folder and allow it in the launcher's Mods page. It has the same buttons, plus a list of every Pokémon on F3 or ZL + R3. The Pokémon can also be picked in the mod's settings (launcher or F1 in game). See [recompia/play-as-pokemon/README.md](../../recompia/play-as-pokemon/README.md).
+Recompia runs the game natively, so it can't use the IPS and cheat files. Use `recompia_play_as_pokemon-1.7.1.pkmod` instead: copy it into Recompia's `mods` folder and allow it in the launcher's Mods page. It has the same buttons, plus a list of every Pokémon on F3 or ZL + R3. The Pokémon can also be picked in the mod's settings (launcher or F1 in game). See [recompia/play-as-pokemon/README.md](../../recompia/play-as-pokemon/README.md).
 
 ### Console with custom firmware (untested)
 ```

@@ -57,7 +57,18 @@ def run(cmd):
     return r.stdout
 
 
-MID = {'char_setup', 'player_tick', 'face'}   # hook points inside a function: everything may be live there
+MID = {'char_setup', 'player_tick', 'face', 'air_menu'}   # hook points inside a function: everything may be live there
+
+
+def test_branch(off, word):
+    """tbz / tbnz at main+off -> (mnemonic, register, bit, target), else None. The trampoline cannot run such an instruction where
+    it is (its target is relative to it), so it runs the same test with a branch to the game's target instead."""
+    if word & 0x7E000000 != 0x36000000:
+        return None
+    imm = (word >> 5) & 0x3FFF
+    imm -= (1 << 14) if imm & (1 << 13) else 0
+    b5 = word >> 31
+    return ('tbnz' if word & (1 << 24) else 'tbz', ('x' if b5 else 'w') + str(word & 31), (b5 << 5) | ((word >> 19) & 31), off + 4 * imm)
 
 
 def trampolines(hooks):
@@ -80,8 +91,10 @@ def trampolines(hooks):
         restore += ['  ldr x17, [sp, #0x88]'] + ([] if mid else ['  ldr x18, [sp, #0x90]'])
         restore += ['  ldr x30, [sp, #0xf0]', f'  add sp, sp, #{frame:#x}']
         out += [f'.global tramp_{name}', f'tramp_{name}:'] + save + ['  mov x0, sp', f'  bl pap_hook_{name}', '  mov x16, x0']
-        out += restore + ['  cbnz w16, 1f', f'  .inst {word:#010x}   // the instruction of the game at main+{off:#x}',
-                          f'  b ret_{name}', '1:', '  ret', '']
+        tb = test_branch(off, word)
+        game = ([f'  {tb[0]} {tb[1]}, #{tb[2]}, 2f   // the test of the game at main+{off:#x}', f'  b ret_{name}', f'2: b tgt_{name}']
+                if tb else [f'  .inst {word:#010x}   // the instruction of the game at main+{off:#x}', f'  b ret_{name}'])
+        out += restore + ['  cbnz w16, 1f'] + game + ['1:', '  ret', '']
     return '\n'.join(out) + '\n'
 
 
@@ -156,7 +169,8 @@ def main():
 
     script = os.path.join(build, 'play_as_pokemon.ld')
     syms = {'pap_main_base': 0, 'pap_form': FORM, 'pap_selected': SELECTED, **HID,
-            **{f'ret_{name}': off + 4 for name, off, _, _ in rb.HOOKS}}
+            **{f'ret_{name}': off + 4 for name, off, _, _ in rb.HOOKS},
+            **{f'tgt_{name}': test_branch(off, word)[3] for name, off, word, _ in rb.HOOKS if test_branch(off, word)}}
     with open(script, 'w', newline='\n') as f:
         for k, v in syms.items():
             f.write(f'{k} = {v:#x};\n')

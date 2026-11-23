@@ -18,7 +18,7 @@ LISTS = os.path.join(REPO, 'mods', 'play-as-pokemon')
 DIST = os.path.join(REPO, 'dist')
 
 MOD_ID = 'play_as_pokemon'
-VERSION = '1.7.0'
+VERSION = '1.7.1'
 ABILITIES = ['Grow', 'Burn', 'Water', 'Generate']   # the order of AB_* in play_as_pokemon.c
 ABILITY_AUTO = 'Auto (the Pokémon’s own)'
 # Which Pokemon have each ability (the in-game specialty lists; the game's own table for it is not found yet). A Pokemon in none of
@@ -52,6 +52,7 @@ HOOKS = [
     ('chair_use', 0x7C1838, 0xD503237F, 'a player sits on a chair (entry): not while transformed (a Pokemon gets stuck there)'),
     ('attach', 0x2A5D5C, 0xD503237F, 'puts a model on the player hand (entry): nothing for a transformed player (a picked-up item stuck at the feet)'),
     ('bed_use', 0x79D948, 0xD503237F, 'a player lies down on a bed (entry): not while transformed (a Pokemon gets stuck there)'),
+    ('air_menu', 0x3164A4, 0x360000C8, 'tbz w8, #0 in the button handler (w8 = body flags, bit 0 in the air): the bag while flying'),
 ]
 
 DESCRIPTION = (

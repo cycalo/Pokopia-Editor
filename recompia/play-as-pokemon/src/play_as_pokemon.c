@@ -776,6 +776,22 @@ static void menu_tick(const MtPad *pad, uint32_t was, int key_menu) {
 
 #endif
 
+/* Something in hand to place (a block, furniture): the game raises and lowers it with ZL + D-pad Up / Down, so ZL + D-pad Down
+   is not the ability then. Found live 2026-11-23 (memory diffs, hands empty vs a block): P+0x53A8 is 2 in the item-in-hand
+   mode (also in the moment between two items or after placing), u16 P+0x2AD8 the item held (0xFFFF none), P+0x36A0 the
+   placement preview (flickers to 0 while the item changes). Any of them counts. */
+#define P_HAND_MODE   0x53A8   /* u32: 2 = item in hand */
+#define P_HAND_ITEM   0x2AD8   /* u16: item id, 0xFFFF = none */
+#define P_PREVIEW     0x36A0   /* u8: placement preview shown */
+static int item_in_hand(uint64_t P) {
+    uint32_t mode = 0;
+    uint16_t item = 0xFFFF;
+    uint8_t preview = 0;
+    if (!P) return 0;
+    rd(P + P_HAND_MODE, &mode, 4), r16(P + P_HAND_ITEM, &item), rd(P + P_PREVIEW, &preview, 1);
+    return mode == 2 || item != 0xFFFF || preview;
+}
+
 static void buttons(uint64_t P) {
     MtPad pad;
     memset(&pad, 0, sizeof pad);
@@ -812,8 +828,9 @@ static void buttons(uint64_t P) {
     else if (atomic_load(&g_cycle) && combo(b, was, MT_PAD_LEFT)) cycle(-1);
     else if (atomic_exchange(&g_settings_changed, 0) && atomic_load(&g_form) && atomic_load(&g_selected) != atomic_load(&g_form))
         want(atomic_load(&g_selected), 0);   /* a new Pokemon picked in the settings while transformed */
-    /* The ability: ZL + D-pad Down, ZR alone (abilities() leaves it to flying Pokemon), or its keyboard key */
-    if (combo(b, was, MT_PAD_DOWN)) g_ab_press = PRESS_COMBO;
+    /* The ability: ZL + D-pad Down (not with an item in hand: the game lowers it then), ZR alone (abilities() leaves it to
+       flying Pokemon), or its keyboard key */
+    if (combo(b, was, MT_PAD_DOWN)) g_ab_press = item_in_hand(P) ? PRESS_NONE : PRESS_COMBO;
     else if ((b & MT_PAD_ZR) && !(was & MT_PAD_ZR) && !(b & MT_PAD_ZL)) g_ab_press = PRESS_ZR;
     else if (key_ability) g_ab_press = PRESS_KEY;
     apply_wanted(P);
@@ -1788,6 +1805,22 @@ static int h_face(MtHookCtx *c, void *u) {
     return MT_CONTINUE;
 }
 
+/* 1.7.1: the bag (and the other buttons) while flying. The player's button handler FUN_710031618c returns early while the body is
+   in the air (bit 0 of u16 [P+0x18A8]+0xB8; 0x0002 standing, 0x000F hovering), unless the bag is already open (P+0x53A8 1) or the
+   player is the Ditto blob (isDitto 1, which the mod clears for interacting). Found live 2026-11-23: write watchpoint on P+0x53A8
+   (the bag) -> FUN_71002F8168 <- 0x318E60 <- 0x31618C. Hook point: main+0x3164A4 `tbz w8, #0, ...` with w8 = those flags and
+   x23 = the player: for the local player flying as the mod's Pokemon, the game sees bit 0 clear and handles the buttons as on
+   the ground. The flags themselves (physics) are not touched. */
+#define BODY_AIR 1u
+static int h_air_menu(MtHookCtx *c, void *u) {
+    (void)u;
+    uint64_t P = player();
+    if (!P || H->reg_get(c, 23) != P || !atomic_load(&g_form) || !atomic_load(&g_interact) || !in_flight()) return MT_CONTINUE;
+    uint64_t w8 = H->reg_get(c, 8);
+    if (w8 & BODY_AIR) H->reg_set(c, 8, w8 & ~(uint64_t)BODY_AIR);
+    return MT_CONTINUE;
+}
+
 /* ---------------------------------------------------------------- entry */
 #ifndef PAP_SWITCH
 MT_EXPORT int mod_init(const MtHost *host, MtMod *mod) {
@@ -1802,7 +1835,7 @@ MT_EXPORT int mod_init(const MtHost *host, MtMod *mod) {
         {"probe", h_probe},
         {"char_setup", h_char_setup},   {"player_tick", h_player_tick}, {"to_human", h_to_human},
         {"motion_reset", h_motion_reset}, {"face", h_face}, {"chair_use", h_chair_use}, {"bed_use", h_bed_use},
-        {"attach", h_attach},
+        {"attach", h_attach},           {"air_menu", h_air_menu},
     };
     for (size_t i = 0; i < sizeof hooks / sizeof hooks[0]; i++) {
         int rc = H->hook(M, hooks[i].point, hooks[i].fn, NULL);
@@ -1842,4 +1875,5 @@ PAP_POINT(face, h_face)
 PAP_POINT(chair_use, h_chair_use)
 PAP_POINT(bed_use, h_bed_use)
 PAP_POINT(attach, h_attach)
+PAP_POINT(air_menu, h_air_menu)
 #endif

@@ -14,18 +14,19 @@ The [Play as Pokemon](../../mods/play-as-pokemon/README.md) mod for [Recompia](h
 | **ZR** as a flying Pokémon | Take off; tap to rise a little, hold to keep rising faster |
 | **ZL** while flying | Descend the same way; keep holding it on the ground to land |
 | **ZL + ZR** held while flying | Drop out of the air (press ZR again to take off) |
-| **ZR** (Pokémon that can't fly) or **ZL + D-pad Down** (any) | Use the Pokémon's ability on what is in front of you |
+| **ZR** (Pokémon that can't fly) or **ZL + D-pad Down** (any) | Use the Pokémon's ability on what is in front of you. Not ZL + D-pad Down while you hold a block or other item: the game raises and lowers it with ZL + D-pad Up / Down (1.7.1) |
 | **A** | Open doors, use the crafting bench and boxes, pick things up, as the human does (1.7.0) |
+| **The bag** | Opens while flying too (1.7.1) |
 
 Keyboard players can also set a key for "turn into", "turn back" and the ability, and change the F3 key, in the mod's settings.
 
 ## Install
 
-1. Copy `recompia_play_as_pokemon-1.7.0.pkmod` into Recompia's `mods` folder (on Windows, next to `pkp.exe`), and remove an older version of it.
+1. Copy `recompia_play_as_pokemon-1.7.1.pkmod` into Recompia's `mods` folder (on Windows, next to `pkp.exe`), and remove an older version of it.
 2. Open `PokopiaLauncher.exe`, go to **Mods**, and allow the new mod's code when it asks.
-3. The first time these hook points are installed, the launcher rebuilds the game once before the next start (a few minutes). Updating from a version older than 1.5.0 rebuilds once more (1.5.0 added the hook point `motion_reset`); 1.6.0 added none; 1.7.0 adds `face`, `chair_use`, `bed_use` and `attach`, so updating to it rebuilds once more. Then press **Play**.
+3. The first time these hook points are installed, the launcher rebuilds the game once before the next start (a few minutes). Updating from a version older than 1.5.0 rebuilds once more (1.5.0 added the hook point `motion_reset`); 1.6.0 added none; 1.7.0 adds `face`, `chair_use`, `bed_use` and `attach`, and 1.7.1 adds `air_menu`, so each of those updates rebuilds once more. Then press **Play**.
 
-The game log (`pkp.log`) should show `play_as_pokemon 1.7.0 started` and `[play_as_pokemon] ready: ZL + L3 turns into Ditto and back, ...`.
+The game log (`pkp.log`) should show `play_as_pokemon 1.7.1 started` and `[play_as_pokemon] ready: ZL + L3 turns into Ditto and back, ...`.
 
 ## Choosing the Pokémon
 
@@ -87,6 +88,10 @@ Some of the human's things don't suit a Pokémon, so the mod keeps them away:
 - **ZR:** with the flag cleared, the game would also start the human's ZR action, which looks like an emote on a Pokémon and blocks the ability. While you're transformed the game doesn't see ZR, so it stays the ability and flying button.
 
 `pkp.log` notes these: `interacting: <Pokémon> (form N) can use doors, the bench, the bag and build`, `no sitting for ...`, `no lying down for ...` and `nothing in hand for ...`.
+
+**Building with an item in hand** (1.7.1): ZL + D-pad Up / Down raise and lower the block you're about to place, but ZL + D-pad Down also used the ability. While you hold something to place (a block, furniture) the mod leaves ZL + D-pad Down to the game; ZR (Pokémon that can't fly) and the ability key still work. The mod tells from the player's item-in-hand state (`+0x53A8` = 2, the held item `+0x2AD8`, the placement preview `+0x36A0`). Placing blocks while flying works as on the ground.
+
+**The bag while flying** (1.7.1): the game ignores every button while the player is in the air (bit 0 of the body flags), unless it is the Ditto blob, so the bag didn't open while flying. A new hook point, `air_menu` (`main+0x3164A4`, the in-air test in the player's button handler), lets your Pokémon's buttons through while it is flying. A jump in the air still ignores them, as for the human.
 
 ## Link Play
 
