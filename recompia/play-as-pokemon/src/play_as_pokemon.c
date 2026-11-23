@@ -819,17 +819,19 @@ static void buttons(uint64_t P) {
     if (atomic_load(&g_interact) && atomic_load(&g_form) && (atomic_load(&g_abilities) || atomic_load(&g_fly))) hide |= MT_PAD_ZR;
     block(hide, 0);
     int transformed = atomic_load(&g_form) || g_want > 0;
+    /* With something in hand to place, ZL + D-pad Left / Right rotate it and ZL + D-pad Down lowers it (the game's own), so
+       they are not the picking or the ability then (1.7.1) */
+    int holding = item_in_hand(P), pick = atomic_load(&g_cycle) && !holding;
     if (key_menu || combo(b, was, MT_PAD_RSTICK)) menu_open();
     else if (combo(b, was, MT_PAD_LSTICK)) want(transformed ? 0 : selected(), 0);   /* ZL + L3: there and back */
     else if (key_on) want(selected(), 0);
     else if (key_off) want(0, 0);
-    else if (atomic_load(&g_cycle) && combo(b, was, MT_PAD_RIGHT)) cycle(1);
-    else if (atomic_load(&g_cycle) && combo(b, was, MT_PAD_LEFT)) cycle(-1);
+    else if (pick && combo(b, was, MT_PAD_RIGHT)) cycle(1);
+    else if (pick && combo(b, was, MT_PAD_LEFT)) cycle(-1);
     else if (atomic_exchange(&g_settings_changed, 0) && atomic_load(&g_form) && atomic_load(&g_selected) != atomic_load(&g_form))
         want(atomic_load(&g_selected), 0);   /* a new Pokemon picked in the settings while transformed */
-    /* The ability: ZL + D-pad Down (not with an item in hand: the game lowers it then), ZR alone (abilities() leaves it to
-       flying Pokemon), or its keyboard key */
-    if (combo(b, was, MT_PAD_DOWN)) g_ab_press = item_in_hand(P) ? PRESS_NONE : PRESS_COMBO;
+    /* The ability: ZL + D-pad Down (not with an item in hand), ZR alone (abilities() leaves it to flying Pokemon), or its key */
+    if (combo(b, was, MT_PAD_DOWN)) g_ab_press = holding ? PRESS_NONE : PRESS_COMBO;
     else if ((b & MT_PAD_ZR) && !(was & MT_PAD_ZR) && !(b & MT_PAD_ZL)) g_ab_press = PRESS_ZR;
     else if (key_ability) g_ab_press = PRESS_KEY;
     apply_wanted(P);

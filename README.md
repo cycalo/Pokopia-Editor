@@ -93,7 +93,7 @@ Turn into any Pokémon in Pokopia. Use their abilities: flying Pokémon can fly,
 | Press | Does |
 |---|---|
 | **ZL + L3** (left stick click) | Transform; press again to turn back |
-| **ZL + D-pad Left / Right** | Previous / next Pokémon |
+| **ZL + D-pad Left / Right** | Previous / next Pokémon (not while holding an object: they rotate it) |
 | **ZR** as a flying Pokémon | Take off, hold to rise |
 | **ZL** while flying | Descend; hold on the ground to land |
 | **ZL + ZR** while flying | Drop out of the air |

@@ -5,7 +5,7 @@ Turn into any Pokémon in Pokopia. Use their abilities: flying Pokémon can fly,
 | Press | Does |
 |---|---|
 | **ZL + L3** (left stick click) | Turn into the chosen Pokémon; press again to turn back |
-| **ZL + D-pad Left / Right** | Pick the previous / next Pokémon (A to Z). While transformed you change as soon as you stop flicking through |
+| **ZL + D-pad Left / Right** | Pick the previous / next Pokémon (A to Z). While transformed you change as soon as you stop flicking through. Not while you hold something to place: the game rotates it with them (1.7.1) |
 | **ZR** as a flying Pokémon | Take off; tap to rise a little, hold to keep rising faster |
 | **ZL** while flying | Descend the same way; keep holding it on the ground to land |
 | **ZL + ZR** while flying | Drop out of the air |
@@ -59,7 +59,7 @@ In Link Play every player needs the mod. Then the other players see your Pokémo
 
 ## Doors, crafting and the bag
 
-Since 1.7 a transformed Pokémon can open doors, use the crafting bench and boxes, open the bag, pick things up, and hold and place blocks, as your character does. Chairs and beds stay for your character: their prompt shows, but A does nothing while you're a Pokémon, because a Pokémon has no sitting animation and would be stuck there. Picked-up items go into the bag without showing in the Pokémon's hand. Tested in Recompia; the emulator version has the same code, untested in an emulator so far. Details in the [Recompia README](../../recompia/play-as-pokemon/README.md#doors-crafting-the-bag-and-building-170). Since 1.7.1 ZL + D-pad Down is left to the game (lowering the block) while you hold something to place, and the bag opens while flying.
+Since 1.7 a transformed Pokémon can open doors, use the crafting bench and boxes, open the bag, pick things up, and hold and place blocks, as your character does. Chairs and beds stay for your character: their prompt shows, but A does nothing while you're a Pokémon, because a Pokémon has no sitting animation and would be stuck there. Picked-up items go into the bag without showing in the Pokémon's hand. Tested in Recompia; the emulator version has the same code, untested in an emulator so far. Details in the [Recompia README](../../recompia/play-as-pokemon/README.md#doors-crafting-the-bag-and-building-170). Since 1.7.1 ZL + D-pad Down and Left / Right are left to the game (lowering and rotating) while you hold something to place, and the bag opens while flying.
 
 ## Abilities
 

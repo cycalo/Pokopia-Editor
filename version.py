@@ -8,7 +8,7 @@ VERSION_STR = '.'.join(map(str, VERSION))
 
 WHATS_NEW = [
     ('Play as Pokemon 1.7', 'While transformed you can open doors, use the crafting bench and boxes, open the bag and build. Also while flying.'),
-    ('Fixes', 'Abilities no longer work only once, eyes no longer go blank while swimming, and ZL + D-pad Down moves a held block instead of using the ability.'),
+    ('Fixes', 'Abilities no longer work only once, eyes no longer go blank while swimming, and ZL + D-pad moves and rotates a held block or object instead of using the ability or picking a Pokemon.'),
     ('Reinstall the mod', 'The Mods page shows Play as Pokemon as outdated: install it again. Everyone in a Link Play session needs 1.7.'),
 ]
 WHATS_NEW_PAGE = 'Mods'

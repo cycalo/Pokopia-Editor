@@ -14,7 +14,7 @@ Only works on **Pokopia 2.0.0, update 655360**.
 | Press | Does |
 |---|---|
 | ZL + L3 (left stick click) | Turn into the Pokémon; press again to turn back |
-| ZL + D-pad Left / Right | Pick the previous / next Pokémon (A to Z) |
+| ZL + D-pad Left / Right | Pick the previous / next Pokémon (A to Z). While you hold an object, they rotate it instead |
 | ZR (as a flying Pokémon) | Take off. Tap to rise a little, hold to keep rising faster |
 | ZL (while flying) | Go down the same way. Keep holding on the ground to land |
 | ZL + ZR (while flying) | Drop out of the air |

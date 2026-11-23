@@ -10,7 +10,7 @@ The [Play as Pokemon](../../mods/play-as-pokemon/README.md) mod for [Recompia](h
 |---|---|
 | **ZL + L3** (left stick click) | Turn into the chosen Pokémon; press again to turn back |
 | **F3** or **ZL + R3** | Open the list of all Pokémon and forms: Up / Down move, Left / Right move by 10, L / R jump to the next letter, A or Enter chooses, B or Esc closes |
-| **ZL + D-pad Left / Right** | Pick the previous / next Pokémon (A to Z). While transformed you change as soon as you stop flicking through |
+| **ZL + D-pad Left / Right** | Pick the previous / next Pokémon (A to Z). While transformed you change as soon as you stop flicking through. Not while you hold something to place: the game rotates it with them (1.7.1) |
 | **ZR** as a flying Pokémon | Take off; tap to rise a little, hold to keep rising faster |
 | **ZL** while flying | Descend the same way; keep holding it on the ground to land |
 | **ZL + ZR** held while flying | Drop out of the air (press ZR again to take off) |
@@ -89,7 +89,7 @@ Some of the human's things don't suit a Pokémon, so the mod keeps them away:
 
 `pkp.log` notes these: `interacting: <Pokémon> (form N) can use doors, the bench, the bag and build`, `no sitting for ...`, `no lying down for ...` and `nothing in hand for ...`.
 
-**Building with an item in hand** (1.7.1): ZL + D-pad Up / Down raise and lower the block you're about to place, but ZL + D-pad Down also used the ability. While you hold something to place (a block, furniture) the mod leaves ZL + D-pad Down to the game; ZR (Pokémon that can't fly) and the ability key still work. The mod tells from the player's item-in-hand state (`+0x53A8` = 2, the held item `+0x2AD8`, the placement preview `+0x36A0`). Placing blocks while flying works as on the ground.
+**Building with an item in hand** (1.7.1): ZL + D-pad Up / Down raise and lower the block you're about to place and ZL + D-pad Left / Right rotate an object, but ZL + D-pad Down also used the ability and Left / Right picked another Pokémon. While you hold something to place (a block, furniture) the mod leaves those three to the game, transformed or not; ZR (Pokémon that can't fly) and the ability key still work. The mod tells from the player's item-in-hand state (`+0x53A8` = 2, the held item `+0x2AD8`, the placement preview `+0x36A0`). Placing blocks while flying works as on the ground.
 
 **The bag while flying** (1.7.1): the game ignores every button while the player is in the air (bit 0 of the body flags), unless it is the Ditto blob, so the bag didn't open while flying. A new hook point, `air_menu` (`main+0x3164A4`, the in-air test in the player's button handler), lets your Pokémon's buttons through while it is flying. A jump in the air still ignores them, as for the human.
 
