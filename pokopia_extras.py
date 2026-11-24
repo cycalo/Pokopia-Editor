@@ -438,7 +438,7 @@ def restore_backup(backup, live, root=None, safety=True):
 
 # ---------------------------------------------------------------- save detection
 TITLE_ID = '0400A3A01EE4C000'          # Pokopia's save folder name in yuzu-family emulators
-YUZU_FAMILY = ('eden', 'yuzu', 'suyu', 'sudachi', 'citron', 'torzu')
+YUZU_FAMILY = ('lichii', 'eden', 'yuzu', 'suyu', 'sudachi', 'citron', 'torzu')
 
 
 def _data_roots(name):
@@ -582,7 +582,7 @@ def default_save(source='emulator'):
 
 
 # ---------------------------------------------------------------- emulator check
-EMULATORS =('eglantine', 'pokedinner', 'eden','yuzu', 'ryujinx', 'citron', 'sudachi', 'suyu', 'torzu')
+EMULATORS =('lichii', 'eglantine', 'pokedinner', 'eden','yuzu', 'ryujinx', 'citron', 'sudachi', 'suyu', 'torzu')
 
 
 def running_emulators():
@@ -593,8 +593,14 @@ def running_emulators():
             try:
                 with open(entry) as f:
                     name = f.read().strip().lower()
-                if any(name.startswith(e) for e in EMULATORS):
-                    found.add(name)
+                try:
+                    executable = os.path.basename(os.readlink(os.path.join(os.path.dirname(entry), 'exe'))).lower()
+                except OSError:
+                    executable = name
+                if executable.endswith('.appimage'):
+                    continue  # AppImage's mount helper is a separate process
+                if any(executable.startswith(e) or name.startswith(e) for e in EMULATORS):
+                    found.add(executable)
             except OSError:
                 pass  # a process can exit during the scan
         return sorted(found)

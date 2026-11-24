@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import patch
 
 import pokopia_extras as px
+from gui.app import App
 from gui.pages.overview import OverviewPage
 from gui.pages.backups import BackupsPage
 
@@ -37,6 +38,20 @@ class LinuxTests(unittest.TestCase):
                     patch('gui.pages.backups.QDesktopServices.openUrl') as open_url:
                 BackupsPage.open_folder(page)
                 self.assertEqual(open_url.call_args.args[0].toLocalFile(), directory)
+
+    def test_packaged_launcher_restores_external_library_paths(self):
+        app = SimpleNamespace(emulator_process=None, settings={}, write_settings=lambda: None,
+                              toast=lambda *args: None)
+        with patch('gui.app.sys.frozen', True, create=True), \
+                patch('gui.app.sys._MEIPASS', '/bundle', create=True), \
+                patch.dict(os.environ, {'LD_LIBRARY_PATH': '/bundle', 'LD_LIBRARY_PATH_ORIG': '/system/lib',
+                                        'QT_PLUGIN_PATH': '/bundle/qt/plugins'}), \
+                patch('gui.app.subprocess.Popen') as popen:
+            App.launch_emulator(app, '/tmp/lichii.AppImage')
+            environment = popen.call_args.kwargs['env']
+            self.assertEqual(environment['LD_LIBRARY_PATH'], '/system/lib')
+            self.assertNotIn('QT_PLUGIN_PATH', environment)
+            self.assertEqual(app.settings['emulator_executable'], '/tmp/lichii.AppImage')
 
 
 if __name__ == '__main__':

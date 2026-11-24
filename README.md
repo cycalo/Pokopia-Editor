@@ -38,12 +38,12 @@ Recompia saves. The save folder contains `G00/CMNDAT.BIN`.
 
 For a standalone executable, follow [AppImage build instructions](#linux-build).
 The AppImage has been built and tested on Ubuntu 26.10 x86_64 and requires glibc 2.44.
-GUI startup and Linux regression checks passed. Real-save editing and older distributions
-have yet to be verified. Linux release binaries have not been published to GitHub.
+GUI startup, all 12 pages with a real save copy, and 11 save round-trip/edit checks passed.
+Older distributions have yet to be verified. Linux release binaries have not been published to GitHub.
 
 Linux support includes folder opening, XDG settings, emulator process detection and
-bundled toolbar icons. Live emulator memory editing, including the Transform action
-while playing, requires Windows. Set the initial Pokémon before installing that mod.
+bundled toolbar icons. Experimental Linux live memory editing supports the verified
+Pokopia 2.0.0 build in Lichii. See [Linux live memory editing](#linux-live-memory-editing).
 
 Upstream Windows builds are available from
 [cycalo's releases](https://github.com/cycalo/Pokopia-Editor/releases/latest).
@@ -203,7 +203,7 @@ The exe stores its settings in `%APPDATA%\Pokopia Editor`.
 ## Linux build
 
 The Linux port supports save editing, maps, photos, backups and mod installation.
-Live emulator memory editing (the Transform action while playing) requires Windows.
+Linux live emulator memory editing is experimental and uses the same build and patch verification as Windows.
 Recompia saves can be opened by browsing to their folder on Linux.
 
 Run the x86_64 AppImage with:
@@ -235,3 +235,22 @@ intend to support, since AppImage packaging retains the build host's glibc requi
 The Linux UI bundles Microsoft Fluent System Icons under the MIT license.
 Font source: https://github.com/microsoft/fluentui-system-icons/tree/main/fonts
 License: `data/fonts/LICENSE-FluentSystemIcons.txt`.
+
+## Linux live memory editing
+
+On the Mods page, use **Launch emulator** to select the Lichii AppImage, then open
+Pokopia and load into the world. Keep the editor open during the session.
+Launching the emulator through the editor allows
+memory access under the usual Linux parent-process ptrace policy. If the emulator
+was started independently and access is denied, close it and relaunch through the editor.
+Other system restrictions can still prevent attachment.
+
+Install Play as Pokemon, enable it in the emulator's game Properties → Add-Ons, and
+restart the game before using Transform. The editor verifies the supported game
+code hash and the installed patch before changing forms. The supported build is
+Pokopia 2.0.0, update 655360. Other emulator memory layouts may need further work.
+
+Linux backend tests use a controlled child process to check attachment, memory
+reads/writes, transformation fields, return-to-character fields and rejection of a
+mismatched build. Save editing tests use a backed-up copy of a real save. Keep a
+backup before testing mods in the game.
