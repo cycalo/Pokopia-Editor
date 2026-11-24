@@ -1,3 +1,4 @@
+# Linux port modifications by frinimini, 2026-11-24. See CREDITS.md.
 """Colours, fonts, the Qt style sheet and Fluent glyph icons."""
 import ctypes, json, os, sys
 from functools import lru_cache

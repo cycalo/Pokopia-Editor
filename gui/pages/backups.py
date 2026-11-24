@@ -1,3 +1,4 @@
+# Linux port modifications by frinimini, 2026-11-24. See CREDITS.md.
 from PySide6.QtGui import QDesktopServices
 import os
 from PySide6.QtCore import Qt, QUrl

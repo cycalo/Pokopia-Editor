@@ -1,3 +1,4 @@
+# Linux port modifications by frinimini, 2026-11-24. See CREDITS.md.
 """Background check for a newer GitHub release.
 
 One unauthenticated GET to the public releases API each time the app starts, sending nothing about the user.

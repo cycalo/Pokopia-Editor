@@ -1,3 +1,4 @@
+# Linux port modifications by frinimini, 2026-11-24. See CREDITS.md.
 """Read-only extras for the Pokopia save editor: island maps, photos, backups, icons, emulator check.
 
 Nothing in this module ever writes to a save file. STGDAT (island) and SCSHDAT (photo)

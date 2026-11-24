@@ -1,3 +1,4 @@
+# Linux port modifications by frinimini, 2026-11-24. See CREDITS.md.
 """Main window: sidebar, header, status bar, pages, and all save / undo / file handling."""
 import datetime, json, os, sys, threading
 
