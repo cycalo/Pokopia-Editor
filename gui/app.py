@@ -12,7 +12,7 @@ import pokopia_save as ps
 from gui import theme as T
 from gui import widgets as W
 from gui.assets import Assets, app_icon, set_app_id
-from gui.updates import UpdateChecker
+from gui.updates import UpdateChecker, RELEASES
 from version import VERSION_STR, WHATS_NEW, WHATS_NEW_PAGE
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -117,7 +117,7 @@ class App(QMainWindow):
                        'Click "Update available" at the bottom right to download it.', 'info')
 
     def open_update(self):
-        QDesktopServices.openUrl(QUrl(getattr(self, 'update_url', None) or 'https://github.com/cycalo/Pokopia-Editor/releases/latest'))
+        QDesktopServices.openUrl(QUrl(getattr(self, 'update_url', None) or RELEASES))
 
     def set_check_updates(self, on):
         self.settings['check_updates'] = bool(on)

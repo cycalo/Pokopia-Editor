@@ -2,12 +2,11 @@
 
 <img src="data/app.png" width="128" alt="Pokopia Editor icon">
 
-# Pokopia Editor
+# Pokopia Editor for Linux
 
 **Edit your Pokopia save: bag, residents, moves, emotes, wardrobe, collection and your islands. Install game mods.**
 
-[![Download](https://img.shields.io/github/v/release/cycalo/Pokopia-Editor?label=Download&style=for-the-badge&color=2ecc71)](https://github.com/cycalo/Pokopia-Editor/releases/latest)
-![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?style=for-the-badge&logo=windows&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-x86__64-FCC624?style=for-the-badge&logo=linux&logoColor=black)
 ![Pokopia](https://img.shields.io/badge/Pokopia-2.0.x-e74c3c?style=for-the-badge)
 
 <img src="docs/screenshots/island-map.png" width="49%" alt="The Island Map editor">
@@ -19,17 +18,34 @@
 
 ## 🚀 Getting started
 
-1. **[Download `PokopiaEditor.exe`](https://github.com/cycalo/Pokopia-Editor/releases/latest)**. There's nothing to install.
-2. **Close your emulator.**
-3. **Double-click the exe.** It finds your save on its own.
+This is the Linux port maintained by [frinimini](https://github.com/frinimini/Pokopia-Editor),
+based on [cycalo/Pokopia-Editor](https://github.com/cycalo/Pokopia-Editor).
 
-Supported emulators: **Eden · Yuzu · Suyu · Sudachi · Citron · Torzu · Ryujinx**.
-If your save isn't found, click **Open → Browse for a folder**.
-[Recompia](https://github.com/Dittobyte/Recompia) saves are found automatically too; choose which one opens at start on the Overview page.
+Run from source on Linux with Python 3 and venv support installed.
 
-> [!NOTE]
-> If Windows shows *"Windows protected your PC"*, click **More info → Run anyway**.
-> The warning appears because the app is new and unsigned.
+```sh
+git clone https://github.com/frinimini/Pokopia-Editor.git
+cd Pokopia-Editor
+python3 -m venv .build-venv
+.build-venv/bin/python -m pip install -r packaging/requirements-linux.txt
+.build-venv/bin/python pokopia_gui.py
+```
+
+Close your emulator before opening a save. The editor searches standard Linux emulator
+save locations. Use **Open → Browse for a folder** to select a save manually, including
+Recompia saves. The save folder contains `G00/CMNDAT.BIN`.
+
+For a standalone executable, follow [AppImage build instructions](#linux-build).
+The AppImage has been built and tested on Ubuntu 26.10 x86_64 and requires glibc 2.44.
+GUI startup and Linux regression checks passed. Real-save editing and older distributions
+have yet to be verified. Linux release binaries have not been published to GitHub.
+
+Linux support includes folder opening, XDG settings, emulator process detection and
+bundled toolbar icons. Live emulator memory editing, including the Transform action
+while playing, requires Windows. Set the initial Pokémon before installing that mod.
+
+Upstream Windows builds are available from
+[cycalo's releases](https://github.com/cycalo/Pokopia-Editor/releases/latest).
 
 ---
 
@@ -152,7 +168,7 @@ More details: [mods/unlimited-crafting-storage-range](mods/unlimited-crafting-st
 ---
 
 <details>
-<summary><b>🛠️ Running from source</b></summary>
+<summary><b>🛠️ Windows source build</b></summary>
 
 <br>
 

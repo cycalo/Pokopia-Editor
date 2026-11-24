@@ -13,7 +13,7 @@ from PySide6.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 from version import VERSION, VERSION_STR
 
-REPO = 'cycalo/Pokopia-Editor'
+REPO = 'frinimini/Pokopia-Editor'
 API = f'https://api.github.com/repos/{REPO}/releases/latest'
 RELEASES = f'https://github.com/{REPO}/releases/latest'
 
