@@ -1,5 +1,6 @@
+from PySide6.QtGui import QDesktopServices
 import os
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QHBoxLayout, QHeaderView, QMessageBox, QTextBrowser, QTreeWidget,
                                QTreeWidgetItem, QVBoxLayout, QSplitter)
 
@@ -123,7 +124,7 @@ class BackupsPage(Page):
         it = self.tv.currentItem()
         p = self.rows[self.tv.indexOfTopLevelItem(it)]['path'] if it else ps.default_backup_root()
         if os.path.isdir(p):
-            os.startfile(p)
+            QDesktopServices.openUrl(QUrl.fromLocalFile(p))
 
     def restore(self):
         e = self.chosen()

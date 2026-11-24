@@ -585,7 +585,18 @@ EMULATORS =('eglantine', 'pokedinner', 'eden','yuzu', 'ryujinx', 'citron', 'suda
 
 
 def running_emulators():
-    """Names of Switch emulator processes that are running right now (Windows only)."""
+    """Names of Switch emulator processes that are running right now."""
+    if sys.platform.startswith('linux'):
+        found = set()
+        for entry in glob.glob('/proc/[0-9]*/comm'):
+            try:
+                with open(entry) as f:
+                    name = f.read().strip().lower()
+                if any(name.startswith(e) for e in EMULATORS):
+                    found.add(name)
+            except OSError:
+                pass  # a process can exit during the scan
+        return sorted(found)
     if sys.platform != 'win32':
         return []
     try:

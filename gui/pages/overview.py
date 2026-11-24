@@ -1,5 +1,6 @@
+from PySide6.QtGui import QDesktopServices
 import datetime, os
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtWidgets import (QButtonGroup, QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem,
                                QVBoxLayout, QWidget)
 
@@ -102,7 +103,7 @@ class OverviewPage(Page):
         self.emu = W.Pill('')
         sf.body.addWidget(self.emu, 0, Qt.AlignLeft)
         sf.body.addLayout(W.hbox(W.button('Open a save…', T.G['open'], a.open_dialog),
-                                 W.button('Open in Explorer', T.G['folder'], self.open_folder),
+                                 W.button('Open folder', T.G['folder'], self.open_folder),
                                  W.button('Reload from disk', T.G['refresh'], a.reload), None))
         sf.body.addWidget(W.label('WHEN THE EDITOR STARTS, OPEN', 'caps'))
         srow = QHBoxLayout()
@@ -162,7 +163,7 @@ class OverviewPage(Page):
 
     def open_folder(self):
         if self.app.save:
-            os.startfile(self.app.save.folder)
+            QDesktopServices.openUrl(QUrl.fromLocalFile(self.app.save.folder))
 
     def quick_action(self, key):
         c, a = self.c, self.app

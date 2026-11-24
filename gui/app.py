@@ -16,7 +16,11 @@ from gui.updates import UpdateChecker
 from version import VERSION_STR, WHATS_NEW, WHATS_NEW_PAGE
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if getattr(sys, 'frozen', False):  # the exe keeps its settings in %APPDATA%\Pokopia Editor
+if sys.platform.startswith('linux'):
+    _USER_DIR = os.path.join(os.environ.get('XDG_CONFIG_HOME') or os.path.expanduser('~/.config'), 'pokopia-editor')
+    os.makedirs(_USER_DIR, exist_ok=True)
+    SETTINGS = os.path.join(_USER_DIR, 'settings.json')
+elif getattr(sys, 'frozen', False):  # Windows release settings
     _APPDATA = os.environ.get('APPDATA') or os.path.expanduser('~')
     _USER_DIR = os.path.join(_APPDATA, 'Pokopia Editor')
     _OLD_DIR = os.path.join(_APPDATA, 'Pokopia Save Editor')  # name before 1.2

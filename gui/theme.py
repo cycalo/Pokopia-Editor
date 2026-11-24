@@ -1,5 +1,6 @@
 """Colours, fonts, the Qt style sheet and Fluent glyph icons."""
-import ctypes
+import ctypes, json, os, sys
+from functools import lru_cache
 from PySide6.QtCore import Qt, QRectF
 from PySide6.QtGui import QColor, QFont, QFontDatabase, QIcon, QPainter, QPixmap, QGuiApplication
 
@@ -21,8 +22,8 @@ PALETTES = {
 NAME = 'dark'
 P = dict(PALETTES[NAME])
 
-UI_FONT = 'Segoe UI Variable Text'
-DISPLAY_FONT = 'Segoe UI Variable Display'
+UI_FONT = 'DejaVu Sans' if sys.platform.startswith('linux') else 'Segoe UI Variable Text'
+DISPLAY_FONT = UI_FONT if sys.platform.startswith('linux') else 'Segoe UI Variable Display'
 ICON_FONT = 'Segoe Fluent Icons'
 EMOJI_FONT = 'Segoe UI Emoji'
 
@@ -39,6 +40,12 @@ G = dict(
     compare='', restore='', bell='', filter='', edit='', down='',
     chevron='', back='', next='', emoji='', world='',
 )
+
+
+_FONT_DIR = os.path.join(getattr(sys, '_MEIPASS', None) or os.path.dirname(os.path.dirname(__file__)), 'data', 'fonts')
+if sys.platform.startswith('linux'):
+    with open(os.path.join(_FONT_DIR, 'icons.json'), encoding='utf-8') as _icons:
+        G.update(json.load(_icons))
 
 
 def set_theme(name):
@@ -70,7 +77,12 @@ def font(size=10, weight=QFont.Normal, display=False):
     return f
 
 
+@lru_cache(maxsize=1)
 def available_icon_font():
+    if sys.platform.startswith('linux'):
+        font_id = QFontDatabase.addApplicationFont(os.path.join(_FONT_DIR, 'FluentSystemIcons-Regular.ttf'))
+        families = QFontDatabase.applicationFontFamilies(font_id)
+        return families[0] if families else None
     fams = set(QFontDatabase.families())
     for f in (ICON_FONT, 'Segoe MDL2 Assets'):
         if f in fams:
@@ -123,7 +135,7 @@ def arrow_files():
     d = os.path.join(tempfile.gettempdir(), 'pokopia_editor_ui')
     os.makedirs(d, exist_ok=True)
     out = {}
-    for name, glyph in (('down', '\ue70d'), ('up', '\ue70e')):
+    for name, glyph in (('down', G['down']), ('up', G.get('up', '\ue70e'))):
         f = os.path.join(d, f'{name}_{NAME}.png')
         pm = glyph_pixmap(glyph, 20, P['muted'], dpr=1.0)
         pm.save(f)

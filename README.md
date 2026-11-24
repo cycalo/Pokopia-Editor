@@ -182,3 +182,39 @@ The exe stores its settings in `%APPDATA%\Pokopia Editor`.
 <div align="center">
 <sub>Released under the <a href="LICENSE">GNU General Public License v3.0</a>. Pokémon names, icons and other game assets belong to Nintendo, Game Freak and The Pokémon Company. Fan-made tool, not affiliated with them.</sub>
 </div>
+
+## Linux build
+
+The Linux port supports save editing, maps, photos, backups and mod installation.
+Live emulator memory editing (the Transform action while playing) requires Windows.
+Recompia saves can be opened by browsing to their folder on Linux.
+
+Run the x86_64 AppImage with:
+
+```sh
+chmod +x PokopiaEditor-*-x86_64.AppImage
+./PokopiaEditor-*-x86_64.AppImage
+```
+
+If FUSE is unavailable, run it with `--appimage-extract-and-run`.
+Settings are stored in `$XDG_CONFIG_HOME/pokopia-editor/settings.json`, defaulting to
+`~/.config/pokopia-editor/settings.json`. Backups use `~/Documents/Pokopia_Save_Backups`.
+Close the game before editing its save.
+
+To build on x86_64 Linux, install Python 3 with venv support and
+[appimagetool](https://github.com/AppImage/appimagetool/releases), then run:
+
+```sh
+python3 -m venv .build-venv
+.build-venv/bin/python -m pip install -r packaging/requirements-linux.txt
+bash tools/build_appimage.sh
+```
+
+Set `APPIMAGETOOL` to its executable path if it is outside PATH.
+The AppImage is written to `dist/`. The unpacked app is also available at
+`dist/PokopiaEditor/PokopiaEditor`. Build on the oldest Linux distribution you
+intend to support, since AppImage packaging retains the build host's glibc requirements.
+
+The Linux UI bundles Microsoft Fluent System Icons under the MIT license.
+Font source: https://github.com/microsoft/fluentui-system-icons/tree/main/fonts
+License: `data/fonts/LICENSE-FluentSystemIcons.txt`.
