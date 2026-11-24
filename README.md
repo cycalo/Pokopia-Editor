@@ -36,10 +36,11 @@ Close your emulator before opening a save. The editor searches standard Linux em
 save locations. Use **Open → Browse for a folder** to select a save manually, including
 Recompia saves. The save folder contains `G00/CMNDAT.BIN`.
 
-For a standalone executable, follow [AppImage build instructions](#linux-build).
+Download the [Linux AppImage prerelease](https://github.com/frinimini/Pokopia-Editor-Linux/releases/tag/v1.9.2-linux.1),
+or follow [AppImage build instructions](#linux-build) to build it yourself.
 The AppImage has been built and tested on Ubuntu 26.10 x86_64 and requires glibc 2.44.
 GUI startup, all 12 pages with a real save copy, and 11 save round-trip/edit checks passed.
-Older distributions have yet to be verified. Linux release binaries have not been published to GitHub.
+Older distributions have yet to be verified. The prerelease includes checksums, source code and bundled dependency notices.
 
 Linux support includes folder opening, XDG settings, emulator process detection and
 bundled toolbar icons. Experimental Linux live memory editing supports the verified

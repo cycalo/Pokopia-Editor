@@ -47,5 +47,6 @@ are https://www.python.org/downloads/source/, https://code.qt.io/pyside/pyside-s
 https://code.qt.io/qt/, https://github.com/python-pillow/Pillow and
 https://github.com/pyinstaller/pyinstaller.
 
-Before publishing binary releases, check the exact bundled runtime components and
-provide the corresponding source and notices required by their licenses.
+Binary releases include the editor source archive, dependency manifest and bundled
+notices. See `packaging/SOURCES.md` for dependency source locations and the
+version information used to identify matching sources.
