@@ -1,7 +1,7 @@
 # Linux port modifications by frinimini, 2026-11-24. See CREDITS.md.
 """App version, read by the window (update check, What's New) and by PokopiaEditor.spec (exe file version).
 
-Bump this before building a release; the GitHub release tag should be v<VERSION>.
+Bump this before building a release; Linux release tags use linux-v<VERSION>.
 Rewrite WHATS_NEW for each release: it is shown once, the first time that version is opened.
 WHATS_NEW_PAGE is the page its button opens (None for no button)."""
 UPSTREAM_VERSION = (1, 9, 2)
