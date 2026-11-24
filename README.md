@@ -236,6 +236,19 @@ The Linux UI bundles Microsoft Fluent System Icons under the MIT license.
 Font source: https://github.com/microsoft/fluentui-system-icons/tree/main/fonts
 License: `data/fonts/LICENSE-FluentSystemIcons.txt`.
 
+## Known issues
+
+- **Cut and Rock Smash while transformed** — reported during Linux gameplay testing
+  on November 24, 2026. After transforming into Pikachu or other Pokémon, selecting
+  these moves from the move wheel did not perform the expected action. Live
+  transformation itself worked. The cause has yet to be confirmed. Use **Turn back**
+  to return to the normal character before attempting these moves. This workaround
+  still needs in-game verification.
+- The bundled upstream mod implements Grow, Burn, Water and Generate as Pokémon
+  specialty actions. Its documentation lists Chop, Crush, Recycle and other
+  specialties as unimplemented. The reported move-wheel issue above requires
+  separate investigation.
+
 ## Linux live memory editing
 
 On the Mods page, use **Launch emulator** to select the Lichii AppImage, then open
