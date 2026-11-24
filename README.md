@@ -36,7 +36,7 @@ Close your emulator before opening a save. The editor searches standard Linux em
 save locations. Use **Open → Browse for a folder** to select a save manually, including
 Recompia saves. The save folder contains `G00/CMNDAT.BIN`.
 
-Download the [Linux AppImage prerelease](https://github.com/frinimini/Pokopia-Editor-Linux/releases/tag/v1.9.2-linux.1),
+Download the [Linux AppImage prerelease](https://github.com/frinimini/Pokopia-Editor-Linux/releases/tag/v1.9.2-linux.2),
 or follow [AppImage build instructions](#linux-build) to build it yourself.
 The AppImage has been built and tested on Ubuntu 26.10 x86_64 and requires glibc 2.44.
 GUI startup, all 12 pages with a real save copy, and 11 save round-trip/edit checks passed.
@@ -272,3 +272,12 @@ Linux backend tests use a controlled child process to check attachment, memory
 reads/writes, transformation fields, return-to-character fields and rejection of a
 mismatched build. Save editing tests use a backed-up copy of a real save. Keep a
 backup before testing mods in the game.
+
+## Map brush shapes
+
+Paint ground and Ground height support Circle, Square and Rectangle brushes.
+Choose the shape in the tool panel and set the width in cells. Rectangle also
+allows an independent depth. Each dimension supports 1–32 cells. The panel shows
+the footprint count, for example 8 × 4 = 32 cells. Height labels and the map outline
+follow that footprint. Terrain rules can skip cells that cannot be edited.
+Paint and height tools keep separate brush settings. The bracket keys adjust width.

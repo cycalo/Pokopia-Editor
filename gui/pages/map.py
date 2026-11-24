@@ -1,3 +1,4 @@
+# Linux port modifications by frinimini, 2026-11-24. See CREDITS.md.
 """Island map editor: textured terrain, placed objects, habitats, homes and the separate areas of each island file.
 
 Tools: select / move objects, place objects, make habitats, paint ground blocks, ground height, pick.
@@ -11,7 +12,7 @@ from collections import Counter, OrderedDict
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer, QVariantAnimation, QEasingCurve, Signal, QPoint
 from PySide6.QtGui import (QBrush, QColor, QFont, QFontMetrics, QIcon, QImage, QPainter, QPainterPath, QPen, QPixmap,
                            QPolygonF, QCursor)
-from PySide6.QtWidgets import (QButtonGroup, QFileDialog, QFrame, QGraphicsItem, QGraphicsScene, QGraphicsView,
+from PySide6.QtWidgets import (QButtonGroup, QComboBox, QSpinBox, QFileDialog, QFrame, QGraphicsItem, QGraphicsScene, QGraphicsView,
                                QGridLayout, QHBoxLayout, QLabel, QListView, QListWidget, QListWidgetItem, QPushButton,
                                QScrollArea, QSlider, QStackedWidget, QToolButton, QVBoxLayout, QWidget)
 
@@ -130,6 +131,19 @@ def tool_icon(kind, color, size=22):
 
 
 # ------------------------------------------------------------------------------------------------ scene items
+
+def brush_offsets(shape, width, depth):
+    """Cell offsets shared by the brush preview and terrain edits."""
+    if shape in ('square', 'rectangle'):
+        depth = width if shape == 'square' else depth
+        return [(dx, dz) for dz in range(-(depth // 2), depth - depth // 2)
+                for dx in range(-(width // 2), width - width // 2)]
+    radius = (width - 1) / 2
+    extent = math.ceil(radius)
+    return [(dx, dz) for dz in range(-extent, extent + 1) for dx in range(-extent, extent + 1)
+            if dx * dx + dz * dz <= radius * radius + radius * 0.8 + 0.01]
+
+
 class TerrainItem(QGraphicsItem):
     """Base image when zoomed out, textured chunk tiles when zoomed in; object footprints at mid zoom."""
 
@@ -512,8 +526,13 @@ class OverlayItem(QGraphicsItem):
         if b and page.tool in ('paint', 'height'):
             cells = page.brush_cells(*b)
             path = QPainterPath()
-            for wx, wz in cells:
-                path.addRect(QRectF(wx - X0, wz - Z0, 1, 1))
+            shape = page.height_brush_shape if page.tool == 'height' else page.brush_shape
+            if shape in ('square', 'rectangle'):
+                xs, zs = zip(*cells)
+                path.addRect(QRectF(min(xs) - X0, min(zs) - Z0, max(xs) - min(xs) + 1, max(zs) - min(zs) + 1))
+            else:
+                for wx, wz in cells:
+                    path.addRect(QRectF(wx - X0, wz - Z0, 1, 1))
             pen = QPen(QColor(255, 255, 255, 230), 1.5)
             pen.setCosmetic(True)
             p.setPen(pen)
@@ -589,17 +608,16 @@ def _overlay_height_labels(self, p, isl, b):
     if s >= 16:
         f = T.font(max(7, min(11, s * 0.28)), QFont.DemiBold)
         p.setFont(f)
-        for dz in range(-6, 7):
-            for dx in range(-6, 7):
-                col = isl.column(b[0] + dx, b[1] + dz)
-                if not col:
-                    continue
-                c = tr.map(QPointF(b[0] + dx - X0 + 0.5, b[1] + dz - Z0 + 0.5))
-                r = QRectF(c.x() - 20, c.y() - 10, 40, 20)
-                p.setPen(QColor(0, 0, 0, 170))
-                p.drawText(r.translated(1, 1), Qt.AlignCenter, str(col[2]))
-                p.setPen(QColor('#ffffff'))
-                p.drawText(r, Qt.AlignCenter, str(col[2]))
+        for wx, wz in page.brush_cells(*b):
+            col = isl.column(wx, wz)
+            if not col:
+                continue
+            c = tr.map(QPointF(wx - X0 + 0.5, wz - Z0 + 0.5))
+            r = QRectF(c.x() - 20, c.y() - 10, 40, 20)
+            p.setPen(QColor(0, 0, 0, 170))
+            p.drawText(r.translated(1, 1), Qt.AlignCenter, str(col[2]))
+            p.setPen(QColor('#ffffff'))
+            p.drawText(r, Qt.AlignCenter, str(col[2]))
     col = isl.column(*b)
     if col:
         _draw_tag(p, tr.map(QPointF(b[0] - X0 + 0.5, b[1] - Z0 + 0.5)), _height_label_text(page, col),
@@ -1069,6 +1087,9 @@ class MapPage(Page):
         self.brush_at = None
         self.brush = 1
         self.height_brush = 3
+        self.brush_shape = self.height_brush_shape = 'circle'
+        self.brush_depth, self.height_brush_depth = 1, 3
+        self.brush_controls = {}
         self.height_mode, self.flatten_y, self.show_heights = 'raise', 40, True
         self.recipes, self.recipe_sources, self.recipe = {}, set(), None
         self.stamp_rot, self.stamp_ghost, self.pick_cut, self.stamp_liquids = 0, None, False, []
@@ -1322,23 +1343,14 @@ class MapPage(Page):
         v = QVBoxLayout(w)
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(8)
+        v.setAlignment(Qt.AlignTop)
         self.block_search = W.SearchField('Search blocks')
         self.block_search.textChanged.connect(self.fill_block_grid)
         v.addWidget(self.block_search)
         self.block_grid = IconGrid(36)
         self.block_grid.currentItemChanged.connect(self.block_chosen)
         v.addWidget(self.block_grid)
-        row = QHBoxLayout()
-        row.addWidget(W.label('Brush', 'small'))
-        self.brush_slider = QSlider(Qt.Horizontal)
-        self.brush_slider.setRange(1, 15)
-        self.brush_slider.setValue(self.brush)
-        self.brush_slider.valueChanged.connect(self.set_brush)
-        row.addWidget(self.brush_slider, 1)
-        self.brush_lbl = W.label(f'{self.brush}', 'small')
-        self.brush_lbl.setFixedWidth(28)
-        row.addWidget(self.brush_lbl)
-        v.addLayout(row)
+        self.build_brush_controls(v, height=False)
         self.block_info = W.label('', 'small', wrap=True)
         v.addWidget(self.block_info)
         self.block_hint = W.label('', 'muted', wrap=True)
@@ -1347,12 +1359,59 @@ class MapPage(Page):
         self.block_panel = w
         self._blocks_filled = False
 
+    def build_brush_controls(self, layout, height):
+        shape = QComboBox()
+        for label, value in (('Circle', 'circle'), ('Square', 'square'), ('Rectangle', 'rectangle')):
+            shape.addItem(label, value)
+        layout.addWidget(W.label('Brush shape', 'small'))
+        layout.addWidget(shape)
+        width, depth = QSpinBox(), QSpinBox()
+        for spin in (width, depth):
+            spin.setRange(1, 32)
+            spin.setSuffix(' cells')
+        width.setValue(self.height_brush if height else self.brush)
+        depth.setValue(width.value())
+        for label, spin in (('Width', width), ('Depth', depth)):
+            row = QHBoxLayout()
+            row.addWidget(W.label(label, 'small'))
+            row.addWidget(spin, 1)
+            layout.addLayout(row)
+        count = W.label('', 'small', wrap=True)
+        layout.addWidget(count)
+        self.brush_controls[height] = (shape, width, depth, count)
+        if height:
+            self.hbrush_slider = width  # keyboard shortcuts use setValue
+        else:
+            self.brush_slider = width
+        shape.currentIndexChanged.connect(lambda _: self.update_brush_controls(height))
+        width.valueChanged.connect(self.set_height_brush if height else self.set_brush)
+        depth.valueChanged.connect(lambda _: self.update_brush_controls(height))
+        self.update_brush_controls(height)
+
+    def update_brush_controls(self, height):
+        shape, width, depth, count = self.brush_controls[height]
+        selected = shape.currentData()
+        rectangle = selected == 'rectangle'
+        depth.setEnabled(rectangle)
+        if not rectangle:
+            depth.blockSignals(True)
+            depth.setValue(width.value())
+            depth.blockSignals(False)
+        if height:
+            self.height_brush_shape, self.height_brush_depth = selected, depth.value()
+        else:
+            self.brush_shape, self.brush_depth = selected, depth.value()
+        cells = len(brush_offsets(selected, width.value(), depth.value()))
+        count.setText(f'{width.value()} × {depth.value()} cells · {cells} cells in brush')
+        getattr(self, 'overlay', None) and self.overlay.update()
+
     def build_height_panel(self):
         from PySide6.QtWidgets import QCheckBox, QSpinBox
         w = QWidget()
         v = QVBoxLayout(w)
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(8)
+        v.setAlignment(Qt.AlignTop)
         seg = QHBoxLayout()
         seg.setSpacing(4)
         self.height_btns = {}
@@ -1379,17 +1438,7 @@ class MapPage(Page):
         self.flat_row = QWidget()
         self.flat_row.setLayout(frow)
         v.addWidget(self.flat_row)
-        row = QHBoxLayout()
-        row.addWidget(W.label('Brush', 'small'))
-        self.hbrush_slider = QSlider(Qt.Horizontal)
-        self.hbrush_slider.setRange(1, 15)
-        self.hbrush_slider.setValue(self.height_brush)
-        self.hbrush_lbl = W.label(str(self.height_brush), 'small')
-        self.hbrush_lbl.setFixedWidth(28)
-        self.hbrush_slider.valueChanged.connect(self.set_height_brush)
-        row.addWidget(self.hbrush_slider, 1)
-        row.addWidget(self.hbrush_lbl)
-        v.addLayout(row)
+        self.build_brush_controls(v, height=True)
         self.heights_check = QCheckBox('Colour the map by height')
         self.heights_check.setChecked(True)
         self.heights_check.toggled.connect(self.set_show_heights)
@@ -1445,7 +1494,7 @@ class MapPage(Page):
 
     def set_height_brush(self, n):
         self.height_brush = n
-        self.hbrush_lbl.setText(str(n))
+        self.update_brush_controls(height=True)
         getattr(self, 'overlay', None) and self.overlay.update()
 
     def set_show_heights(self, on):
@@ -1730,7 +1779,7 @@ class MapPage(Page):
 
     def set_brush(self, n):
         self.brush = n
-        self.brush_lbl.setText(str(n))
+        self.update_brush_controls(height=False)
         getattr(self, 'overlay', None) and self.overlay.update()
 
     # ---------- tools ----------
@@ -1790,14 +1839,11 @@ class MapPage(Page):
         self.place_floating()
 
     def brush_cells(self, wx, wz):
-        r = ((self.height_brush if self.tool == 'height' else self.brush) - 1) / 2
-        out = []
-        n = int(math.ceil(r))
-        for dz in range(-n, n + 1):
-            for dx in range(-n, n + 1):
-                if dx * dx + dz * dz <= r * r + r * 0.8 + 0.01:
-                    out.append((wx + dx, wz + dz))
-        return out
+        if self.tool == 'height':
+            offsets = brush_offsets(self.height_brush_shape, self.height_brush, self.height_brush_depth)
+        else:
+            offsets = brush_offsets(self.brush_shape, self.brush, self.brush_depth)
+        return [(wx + dx, wz + dz) for dx, dz in offsets]
 
     # ---------- floating widgets ----------
     def resizeEvent(self, e):
