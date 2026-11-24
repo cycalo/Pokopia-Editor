@@ -2010,6 +2010,7 @@ class MapPage(Page):
         self.terrain = self.objects_item = self.habitats_item = self.grid_item = self.overlay = None
         self.markers, self.zone_labels = [], []
         self.view_data = None
+        self.update_layer_inspector()
         self.place_floating()
 
     def show_island(self, v):
@@ -2176,6 +2177,8 @@ class MapPage(Page):
             self.layer_summary.setText(f'X {wx} · Z {wz}\nNo terrain or placed objects at this cell.')
 
     def choose_layer(self, item, _column=0):
+        if not self.isl():
+            return
         value = item.data(0, Qt.UserRole)
         if not value:
             return

@@ -297,5 +297,4 @@ complete view. The slider and roof-picking shortcut remain available for cutaway
 viewing. Visibility switches are grouped separately under Map overlays.
 
 These controls change the view and selection. Viewing different heights does not
-change save data. The groups describe occupied Y heights, rather than automatically
-identified building floors.
+change save data. The groups describe occupied Y heights.
