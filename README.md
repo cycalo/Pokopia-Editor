@@ -250,6 +250,10 @@ restart the game before using Transform. The editor verifies the supported game
 code hash and the installed patch before changing forms. The supported build is
 Pokopia 2.0.0, update 655360. Other emulator memory layouts may need further work.
 
+Manual gameplay verification on November 24, 2026 confirmed live transformation
+to Pikachu in Lichii on Ubuntu 26.10 using the AppImage. The emulator was launched
+through the editor. Return-to-character and other forms remain to be verified in-game.
+
 Linux backend tests use a controlled child process to check attachment, memory
 reads/writes, transformation fields, return-to-character fields and rejection of a
 mismatched build. Save editing tests use a backed-up copy of a real save. Keep a
