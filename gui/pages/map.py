@@ -14,7 +14,7 @@ from PySide6.QtGui import (QBrush, QColor, QFont, QFontMetrics, QIcon, QImage, Q
                            QPolygonF, QCursor)
 from PySide6.QtWidgets import (QButtonGroup, QComboBox, QSpinBox, QFileDialog, QFrame, QGraphicsItem, QGraphicsScene, QGraphicsView,
                                QGridLayout, QHBoxLayout, QLabel, QListView, QListWidget, QListWidgetItem, QPushButton,
-                               QScrollArea, QSlider, QStackedWidget, QToolButton, QVBoxLayout, QWidget)
+                               QScrollArea, QSlider, QTreeWidget, QTreeWidgetItem, QStackedWidget, QToolButton, QVBoxLayout, QWidget)
 
 import pokopia_extras as px
 import pokopia_island as pi
@@ -142,6 +142,24 @@ def brush_offsets(shape, width, depth):
     extent = math.ceil(radius)
     return [(dx, dz) for dz in range(-extent, extent + 1) for dx in range(-extent, extent + 1)
             if dx * dx + dz * dz <= radius * radius + radius * 0.8 + 0.01]
+
+
+
+def column_layers(island, wx, wz):
+    """Vertical contents, including hidden objects and contiguous terrain bands."""
+    rows = [(o.y + o.h - 1, o.y, o.name, o.handle)
+            for o in island.objects_in(wx, wz, wx, wz)]
+    start, previous = 0, 0
+    for y in range(129):
+        cell = island.get_cell(wx, y, wz) if y < 128 else None
+        block = (cell & pi.ID_MASK) if cell is not None else 0
+        if block == 0x7ff:
+            block = 0  # placed-object occupancy is represented by the object row
+        if block != previous:
+            if previous:
+                rows.append((y - 1, start, pi.block_name(previous), None))
+            start, previous = y, block
+    return sorted(rows, key=lambda row: (-row[0], -row[1], row[2]))
 
 
 class TerrainItem(QGraphicsItem):
@@ -521,6 +539,15 @@ class OverlayItem(QGraphicsItem):
             pen.setCosmetic(True)
             p.setPen(pen)
             p.drawLine(QPointF(fx - X0 + 0.5, fz - Z0 + 0.5), QPointF(fx - X0 + 0.5 - (ax - fx) * 0.45, fz - Z0 + 0.5 - (az - fz) * 0.45))
+        if page.layer_cell is not None and page.tool == 'select':
+            wx, wz = page.layer_cell
+            p.save()
+            pen = QPen(acc, 2)
+            pen.setCosmetic(True)
+            p.setPen(pen)
+            p.setBrush(QColor(acc.red(), acc.green(), acc.blue(), 40))
+            p.drawRect(QRectF(wx - X0, wz - Z0, 1, 1))
+            p.restore()
         # brush
         b = page.brush_at
         if b and page.tool in ('paint', 'height'):
@@ -1085,6 +1112,9 @@ class MapPage(Page):
         self.hover_obj = None
         self.ghost = None
         self.brush_at = None
+        self.layer_cell = None
+        self.layer_area = None
+        self.layer_levels = []
         self.brush = 1
         self.height_brush = 3
         self.brush_shape = self.height_brush_shape = 'circle'
@@ -1212,7 +1242,7 @@ class MapPage(Page):
         self.build_height_panel()
         self.build_habitat_panel()
         sl.addWidget(self.tool_card)
-        lc = W.Card('Layers', None, T.G['layers'], padding=12)
+        lc = W.Card('Map overlays', None, T.G['layers'], padding=12)
         self.layer_rows = {}
         for key, text, note in (('textures', 'Block textures', 'When zoomed in'), ('objects', 'Placed objects', ''),
                                 ('icons', 'Object icons', 'When zoomed in close'), ('habitats', 'Habitats', ''),
@@ -1224,12 +1254,13 @@ class MapPage(Page):
             row.toggle.toggled.connect(lambda on, k=key: self.set_opt(k, on))
             lc.body.addWidget(row)
             self.layer_rows[key] = row
-        self.cut_row = W.ToggleRow('Look inside', 'Hide everything above a height')
+        hc = W.Card('Height layers', None, T.G['layers'], padding=12)
+        self.cut_row = W.ToggleRow('Limit visible height', 'Show this level and everything below')
         self.cut_row.toggle.toggled.connect(lambda on: self.apply_cut())
-        lc.body.addWidget(self.cut_row)
+        hc.body.addWidget(self.cut_row)
         crow = QHBoxLayout()
         self.cut_slider = QSlider(Qt.Horizontal)
-        self.cut_slider.setRange(2, 126)
+        self.cut_slider.setRange(1, 126)
         self.cut_slider.setValue(60)
         self.cut_lbl = W.label('Y 60', 'small')
         self.cut_lbl.setFixedWidth(44)
@@ -1237,10 +1268,27 @@ class MapPage(Page):
         self.cut_slider.valueChanged.connect(lambda v: (self.cut_lbl.setText(f'Y {v}'), self.cut_timer.start()))
         crow.addWidget(self.cut_slider, 1)
         crow.addWidget(self.cut_lbl)
-        lc.body.addLayout(crow)
+        hc.body.addLayout(crow)
+        steps = QHBoxLayout()
+        steps.addWidget(W.button('Lower level', T.G['down'], lambda: self.step_layer(-1), small=True))
+        steps.addWidget(W.button('Higher level', T.G.get('up', T.G['chevron']), lambda: self.step_layer(1), small=True))
+        hc.body.addLayout(steps)
+        hc.body.addWidget(W.button('Show all heights', T.G['layers'], self.show_all_heights, small=True))
         self.cut_pick = W.button('Click a roof to look under it', T.G['pin'], self.start_pick_cut, small=True,
                                  tip='Then click a roof or ceiling on the map: everything from that height up is hidden')
-        lc.body.addWidget(self.cut_pick)
+        hc.body.addWidget(self.cut_pick)
+        self.layer_summary = W.label('Click a map cell with Select to inspect its vertical contents.', 'muted', wrap=True)
+        hc.body.addWidget(self.layer_summary)
+        self.layer_tree = QTreeWidget()
+        self.layer_tree.setColumnCount(1)
+        self.layer_tree.setHeaderHidden(True)
+        self.layer_tree.setMinimumHeight(100)
+        self.layer_tree.setMaximumHeight(220)
+        self.layer_tree.setWordWrap(True)
+        self.layer_tree.itemClicked.connect(self.choose_layer)
+        self.layer_tree.hide()
+        hc.body.addWidget(self.layer_tree)
+        sl.insertWidget(1, hc)
         sl.addWidget(lc)
         rc = W.Card('Residents here', None, T.G['people'], padding=12)
         self.res_list = QListWidget()
@@ -1990,9 +2038,18 @@ class MapPage(Page):
                 self.scene.addItem(lab)
                 self.zone_labels.append(lab)
         self.message('')
+        layer_area = (self.app.save.folder, self.area)
+        if self.layer_area != layer_area:
+            self.layer_area = layer_area
+            self.layer_cell = None
         if fresh:
             self.cut_row.toggle.set_quiet(v.isl.cut < 127)
             self.cut_slider.setEnabled(v.isl.cut < 127)
+            self.cut_slider.blockSignals(True)
+            self.cut_slider.setValue(min(v.isl.cut, 126))
+            self.cut_slider.blockSignals(False)
+            self.cut_lbl.setText(f'Y {self.cut_slider.value()}' if v.isl.cut < 127 else 'All')
+        self.update_layer_inspector()
         self.update_markers()
         self.update_side()
         self.update_zones()
@@ -2060,6 +2117,77 @@ class MapPage(Page):
         self.zone_note.setText('Besides the island itself, the file holds separate areas far out in empty space. '
                                'Click one to go there.' if n > 1 else 'This file holds only the island.')
 
+    def show_all_heights(self):
+        self.cut_timer.stop()
+        self.cut_row.toggle.set_quiet(False)
+        self.apply_cut()
+
+    def show_height(self, height):
+        self.cut_timer.stop()
+        self.cut_slider.blockSignals(True)
+        self.cut_slider.setValue(min(height, 126))
+        self.cut_slider.blockSignals(False)
+        self.cut_lbl.setText(f'Y {self.cut_slider.value()}')
+        self.cut_row.toggle.set_quiet(height < 127)
+        self.apply_cut()
+
+    def step_layer(self, direction):
+        island = self.isl()
+        if not island:
+            return
+        current = island.cut
+        levels = [y for y in self.layer_levels if (y - current) * direction > 0]
+        height = (min(levels) if direction > 0 else max(levels)) if levels else current + direction
+        self.show_height(max(1, min(127, height)))
+
+    def update_layer_inspector(self):
+        self.layer_tree.clear()
+        self.layer_levels = []
+        island = self.isl()
+        if not island or self.layer_cell is None:
+            self.layer_tree.hide()
+            self.layer_summary.setText('Click a map cell with Select to inspect its vertical contents.')
+            return
+        wx, wz = self.layer_cell
+        rows = column_layers(island, wx, wz)
+        objects = sum(handle is not None for _, _, _, handle in rows)
+        self.layer_summary.setText(f'X {wx} · Z {wz}\n{objects} objects · {len(rows) - objects} terrain layers')
+        group = None
+        last_height = None
+        for top, bottom, name, handle in rows:
+            if top != last_height:
+                hidden = ' · above view' if top > island.cut else ''
+                group = QTreeWidgetItem(self.layer_tree, [f'Y {top}{hidden}'])
+                group.setData(0, Qt.UserRole, (top, None))
+                self.layer_levels.append(top)
+                last_height = top
+            span = f'Y {bottom}' if bottom == top else f'Y {bottom}–{top}'
+            status = ' · hidden' if bottom > island.cut else ' · partly visible' if top > island.cut else ''
+            item = QTreeWidgetItem(group, [f'{name} · {span}{status}'])
+            item.setData(0, Qt.UserRole, (top, handle))
+            item.setToolTip(0, 'Click to reveal this level and select the object, when present.')
+            if handle is not None:
+                obj = island.by_handle.get(handle)
+                if obj and obj.item:
+                    item.setIcon(0, QIcon(self.app.assets.item(obj.item, 20)))
+        self.layer_tree.expandAll()
+        self.layer_tree.setVisible(bool(rows))
+        if not rows:
+            self.layer_summary.setText(f'X {wx} · Z {wz}\nNo terrain or placed objects at this cell.')
+
+    def choose_layer(self, item, _column=0):
+        value = item.data(0, Qt.UserRole)
+        if not value:
+            return
+        height, handle = value
+        self.show_height(height)
+        if handle is not None:
+            self.selection = [handle]
+            self.sel_habitat = None
+            self.update_inspector()
+            self.overlay.update()
+            self.habitats_item.update()
+
     def start_pick_cut(self):
         self.pick_cut = True
         self.hint.setText('Click a roof or ceiling: everything from that height up will be hidden  ·  Esc to cancel')
@@ -2072,6 +2200,7 @@ class MapPage(Page):
         v = self.view_data
         on = self.cut_row.toggle.isChecked()
         self.cut_slider.setEnabled(on)
+        self.cut_lbl.setText(f'Y {self.cut_slider.value()}' if on else 'All')
         if not v:
             return
         y = self.cut_slider.value() if on else 127
@@ -2089,6 +2218,7 @@ class MapPage(Page):
         for it in (self.terrain, self.objects_item, self.overlay):
             it.update()
         self.minimap.update()
+        self.update_layer_inspector()
 
     def fly_zone(self, z):
         v = self.view_data
@@ -2215,6 +2345,7 @@ class MapPage(Page):
         btn = e.button()
         mods = e.modifiers()
         if self.pick_cut and btn == Qt.LeftButton:
+            self.layer_cell = (wx, wz)
             self.pick_cut = False
             top = isl.top_at(wx, wz)
             self.update_hint()
@@ -2233,6 +2364,9 @@ class MapPage(Page):
         if self.tool == 'select':
             if btn != Qt.LeftButton:
                 return False
+            self.layer_cell = (wx, wz)
+            self.update_layer_inspector()
+            self.overlay.update()
             if mods & Qt.ShiftModifier:
                 self.drag = dict(kind='box', a=sp, b=sp, add=bool(mods & Qt.ControlModifier))
                 return True
@@ -2518,6 +2652,7 @@ class MapPage(Page):
             self.objects_item.update()
             self.update_side()
         self.selection = [h for h in self.selection if h in isl.by_handle]
+        self.update_layer_inspector()
         self.update_inspector()
         self.terrain.update()
         self.overlay.update()

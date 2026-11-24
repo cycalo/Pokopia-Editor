@@ -17,7 +17,8 @@ https://github.com/berichan/PokoHex
 Linux modifications by frinimini, November 24, 2026, add AppImage packaging,
 Linux settings storage, folder opening, emulator detection, bundled UI icons,
 experimental procfs live memory access and launching emulators as child processes.
-The fork also updates setup documentation and release links.
+The fork also adds map brush shapes and height-layer inspection, and updates setup
+documentation and release links.
 These changes are distributed under the project's GPLv3 license.
 
 Source and build instructions are available at

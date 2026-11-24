@@ -18,7 +18,7 @@
 
 ## 🚀 Getting started
 
-Linux port version **1.0.0**, based on upstream editor **1.9.2**.
+Linux port version **1.1.0**, based on upstream editor **1.9.2**.
 
 This is the Linux port maintained by [frinimini](https://github.com/frinimini/Pokopia-Editor-Linux),
 based on [cycalo/Pokopia-Editor](https://github.com/cycalo/Pokopia-Editor).
@@ -38,7 +38,7 @@ Close your emulator before opening a save. The editor searches standard Linux em
 save locations. Use **Open → Browse for a folder** to select a save manually, including
 Recompia saves. The save folder contains `G00/CMNDAT.BIN`.
 
-Download the [Linux AppImage v1.0.0](https://github.com/frinimini/Pokopia-Editor-Linux/releases/tag/linux-v1.0.0),
+Download the [Linux AppImage v1.1.0](https://github.com/frinimini/Pokopia-Editor-Linux/releases/tag/linux-v1.1.0),
 or follow [AppImage build instructions](#linux-build) to build it yourself.
 The AppImage has been built and tested on Ubuntu 26.10 x86_64 and requires glibc 2.44.
 GUI startup, all 12 pages with a real save copy, and 11 save round-trip/edit checks passed.
@@ -283,3 +283,19 @@ allows an independent depth. Each dimension supports 1–32 cells. The panel sho
 the footprint count, for example 8 × 4 = 32 cells. Height labels and the map outline
 follow that footprint. Terrain rules can skip cells that cannot be edited.
 Paint and height tools keep separate brush settings. The bracket keys adjust width.
+
+## Inspect stacked height layers
+
+The Height layers panel sits below the island selector. With Select active, click a
+map cell to list its placed objects and contiguous terrain bands, grouped by their
+top Y height. Entries show their full vertical range and whether they are hidden or
+partly visible at the current cutoff. The inspected cell is outlined on the map.
+
+Click an entry to reveal its height and select its object. Lower level and Higher
+level move between occupied heights at that cell. Show all heights restores the
+complete view. The slider and roof-picking shortcut remain available for cutaway
+viewing. Visibility switches are grouped separately under Map overlays.
+
+These controls change the view and selection. Viewing different heights does not
+change save data. The groups describe occupied Y heights, rather than automatically
+identified building floors.
