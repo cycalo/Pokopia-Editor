@@ -14,7 +14,7 @@ from PySide6.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 from version import VERSION, VERSION_STR
 
-REPO = 'frinimini/Pokopia-Editor'
+REPO = 'frinimini/Pokopia-Editor-Linux'
 API = f'https://api.github.com/repos/{REPO}/releases/latest'
 RELEASES = f'https://github.com/{REPO}/releases/latest'
 

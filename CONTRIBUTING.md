@@ -1,7 +1,7 @@
 # Contributing
 
 This fork maintains the Linux port of cycalo's Pokopia Editor. Open Linux issues
-and pull requests at https://github.com/frinimini/Pokopia-Editor.
+and pull requests at https://github.com/frinimini/Pokopia-Editor-Linux.
 Credit upstream work and preserve existing author, copyright and license notices.
 Contributions must be compatible with the project's GPLv3 license. Identify the
 source and license of any added third-party code or assets and include its notices.

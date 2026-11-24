@@ -18,15 +18,15 @@
 
 ## 🚀 Getting started
 
-This is the Linux port maintained by [frinimini](https://github.com/frinimini/Pokopia-Editor),
+This is the Linux port maintained by [frinimini](https://github.com/frinimini/Pokopia-Editor-Linux),
 based on [cycalo/Pokopia-Editor](https://github.com/cycalo/Pokopia-Editor).
 See [credits and licenses](CREDITS.md) and [contribution guidelines](CONTRIBUTING.md).
 
 Run from source on Linux with Python 3 and venv support installed.
 
 ```sh
-git clone https://github.com/frinimini/Pokopia-Editor.git
-cd Pokopia-Editor
+git clone https://github.com/frinimini/Pokopia-Editor-Linux.git
+cd Pokopia-Editor-Linux
 python3 -m venv .build-venv
 .build-venv/bin/python -m pip install -r packaging/requirements-linux.txt
 .build-venv/bin/python pokopia_gui.py

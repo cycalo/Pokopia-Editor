@@ -20,7 +20,7 @@ The fork also updates setup documentation and release links.
 These changes are distributed under the project's GPLv3 license.
 
 Source and build instructions are available at
-https://github.com/frinimini/Pokopia-Editor.
+https://github.com/frinimini/Pokopia-Editor-Linux.
 
 ## Third-party material
 
