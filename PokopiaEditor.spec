@@ -31,7 +31,7 @@ a = Analysis(
     datas=[('data', 'data'), ('mods', 'mods'), ('LICENSE', '.')],
     hiddenimports=[
         'gui.pages.overview', 'gui.pages.bag', 'gui.pages.residents', 'gui.pages.moves',
-        'gui.pages.wardrobe', 'gui.pages.collection', 'gui.pages.map', 'gui.pages.photos', 'gui.pages.backups', 'gui.pages.advanced', 'gui.pages.mods', 'gui.pages.welcome',
+        'gui.pages.wardrobe', 'gui.pages.collection', 'gui.pages.map', 'gui.pages.photos', 'gui.pages.backups', 'gui.pages.advanced', 'gui.pages.mods', 'gui.pages.quests', 'gui.pages.welcome',
     ],
     excludes=['tkinter', 'unittest', 'pydoc', 'test'],
 )

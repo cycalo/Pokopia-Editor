@@ -3,7 +3,7 @@
 Used to check the UI. Settings are not written in this mode.
 """
 import os
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QApplication
 
 from gui import theme as T
@@ -28,6 +28,11 @@ def run_screenshots(win, outdir):
             p.compare_b00()
         elif name == 'Advanced':
             p.gate.toggle.setChecked(True)
+        elif name == 'Quests':
+            p.gate.toggle.setChecked(True)
+            rows = [i for i in range(p.list.count()) if p.list.item(i).flags() & Qt.ItemIsSelectable]
+            if rows:
+                p.list.setCurrentRow(rows[0])
 
     def busy(name):
         if name == 'Island Map':

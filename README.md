@@ -48,6 +48,7 @@ If your save isn't found, click **Open → Browse for a folder**.
 | 📷 | **Photos** | Browse your in-game album and export full-size photos |
 | 🛟 | **Backups** | Make, compare, restore and delete backups |
 | 🧩 | **Mods** | Install game mods: Play as Pokemon, Unlimited Crafting Storage Range |
+| 📜 | **Quests** <sub>(experimental)</sub> | See where every quest stands and finish one that is stuck, for example after Link Play. Wasteland quest names mapped by MrGrangerplays |
 
 <table>
   <tr>

@@ -14,7 +14,7 @@ Format notes (verified against a real save):
 Fields marked "own finding" below were located by comparing
 G00 with B00 in a real save and are only ever READ, except where noted "advanced".
 """
-import os, shutil, struct, sys, zlib, hashlib, datetime
+import os, shutil, struct, sys, zlib, hashlib, datetime, json
 
 MAGIC = 0x31227687
 VERSION = 0x0200017D
@@ -338,6 +338,104 @@ COLLECTION_INFO = {
     'artifact': ('Ancient Artifacts', '', 'found'),
     'photoop': ('Highlight Reel', '', 'completed'),
 }
+
+
+# Quests. Own finding, checked against the game's quest tables 2026-11-25 (not edited in game yet): one u16 state per
+# quest id at QUEST_OFS + 2 * id. The game's states: 1 not started, 2 seen only briefly in older saves (taken here as
+# "unlocked"), 3 in progress, 4 done. A user, MrGrangerplays, first reported the offset and names for the Wasteland.
+# data/quests.json (tools/extract_quest_table.py) holds what each quest does when it starts and when it is done.
+QUEST_OFS, QUEST_COUNT = 0x221F5C, 1001
+QUEST_NOT_STARTED, QUEST_UNLOCKED, QUEST_ACTIVE, QUEST_DONE = 1, 2, 3, 4
+QUEST_STATES = {QUEST_NOT_STARTED: 'Not started', QUEST_UNLOCKED: 'Unlocked', QUEST_ACTIVE: 'In progress',
+                QUEST_DONE: 'Done'}
+QUEST_AREAS = [(1, 160, AREA_NAMES[1] if len(AREA_NAMES) > 1 else 'Area 1'),
+               (161, 320, AREA_NAMES[2] if len(AREA_NAMES) > 2 else 'Area 2'),
+               (321, 480, AREA_NAMES[3] if len(AREA_NAMES) > 3 else 'Area 3'),
+               (481, 640, AREA_NAMES[4] if len(AREA_NAMES) > 4 else 'Area 4'),
+               (641, 800, 'Other quests'),
+               (801, 1000, AREA_NAMES[5] if len(AREA_NAMES) > 5 else 'Area 5')]
+# command types the editor can carry out itself; every other type changes the world or runs a game event
+QCMD_FLAGS, QCMD_MOVE, QCMD_RECIPE, QCMD_FLAG = 1, 2, 3, 0x19
+
+
+def _json(name):
+    try:
+        with open(os.path.join(HERE, 'data', name), encoding='utf-8') as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+QUESTS = {int(k): v for k, v in _json('quests.json').items()}
+QUEST_NAMES = {int(k): v for k, v in _json('quest_names.json').get('names', {}).items()}
+
+
+def quest_area(q):
+    for lo, hi, name in QUEST_AREAS:
+        if lo <= q <= hi:
+            return name
+    return ''
+
+
+def quest_effects(q, phase='done'):
+    """What quest q does when it starts or is done, as (kind, value) pairs: ('flag', id), ('unflag', id),
+    ('move', skill id), ('recipe', recipe row) or ('other', command type)."""
+    out = []
+    for cmd in QUESTS.get(q, {}).get(phase, []):
+        t, p = cmd[0], cmd[1:] + [0] * 8
+        if t == QCMD_FLAGS:
+            out += [('flag', f) for f in p[:4] if f]
+        elif t == QCMD_FLAG:
+            out.append(('flag' if p[1] else 'unflag', p[0]))
+        elif t == QCMD_MOVE:
+            out.append(('move', p[0]))
+        elif t == QCMD_RECIPE:
+            out.append(('recipe', p[0]))
+        else:
+            out.append(('other', t))
+    return out
+
+
+def describe_effect(kind, v):
+    if kind in ('flag', 'unflag'):
+        return f'flag {v}{" off" if kind == "unflag" else ""}' + (f' ({KNOWN_FLAGS[v]})' if v in KNOWN_FLAGS else '')
+    if kind == 'move':
+        return 'teaches ' + name_of(SKILL_NAMES, v, 'move')
+    if kind == 'recipe':
+        item = RECIPE_ITEM[v] if v < len(RECIPE_ITEM) else 0
+        return 'recipe ' + (ITEM_NAMES[item] if _named(ITEM_NAMES, item) else str(v))
+    return ''
+
+
+def quest_summary(q):
+    """Short line on what finishing quest q gives, from the game's quest table (for list rows)."""
+    eff = quest_effects(q)
+    parts = [('teaches ' if k == 'move' else '') + describe_effect(k, v).replace('teaches ', '').replace('recipe ', '')
+             + (' recipe' if k == 'recipe' else '') for k, v in eff if k in ('move', 'recipe')]
+    flags = sum(1 for k, _ in eff if k == 'flag')
+    if flags:
+        parts.append(f'{flags} story flag{"s" if flags > 1 else ""}')
+    return ' · '.join(parts)
+
+
+# Quest kinds (record byte +0xA8). 1 = Pokémon request: its title comes from the game (see the extractor). The main
+# story kinds were read from what the quests do (raise the environment level, Yawn up a storm, Team Initiation).
+QUEST_REQUEST_KIND = 1
+QUEST_MAIN_KINDS = {7, 9, 15, 18}
+
+
+def quest_type(q):
+    k = QUESTS.get(q, {}).get('kind')
+    return 'Request' if k == QUEST_REQUEST_KIND else 'Main story' if k in QUEST_MAIN_KINDS else 'Story step'
+
+
+def quest_name(q):
+    """In-game title when the game files give one, else the name a player mapped, else ''."""
+    return QUESTS.get(q, {}).get('title') or QUEST_NAMES.get(q, '')
+
+
+def quest_name_source(q):
+    return 'game' if QUESTS.get(q, {}).get('title') else 'player' if q in QUEST_NAMES else ''
 
 
 def collection_item(kind, i):
@@ -902,6 +1000,59 @@ class CommonSave:
                 d[PHOTO_STYLE_OFS + (FRAME_COUNT if kind == 'filter' else 0) + i] |= 1
         return len(todo)
 
+    # ---------- quests ----------
+    def quest_state(self, q):
+        if not 0 <= q < QUEST_COUNT:
+            raise ValueError(f'Quest must be 0-{QUEST_COUNT - 1}')
+        return struct.unpack_from('<H', self.data, QUEST_OFS + 2 * q)[0]
+
+    def quests_in(self, state):
+        return [q for q in QUESTS if self.quest_state(q) == state]
+
+    def set_quest_state(self, q, state):
+        """Only the state number; nothing the quest does is applied (see complete_quest)."""
+        if state not in QUEST_STATES:
+            raise ValueError(f'Quest state must be one of {sorted(QUEST_STATES)}')
+        self.quest_state(q)
+        struct.pack_into('<H', self.data, QUEST_OFS + 2 * q, state)
+
+    def _apply_effects(self, q, phase):
+        """Carry out the parts of a quest's start or done commands that live in this file. Returns the command
+        types left to the game (resident moves, map changes, events...)."""
+        left = []
+        for kind, v in quest_effects(q, phase):
+            if kind in ('flag', 'unflag'):
+                if 1 <= v < FLAG_COUNT:
+                    self.set_flag(v, kind == 'flag')
+            elif kind == 'move':
+                if v in PUBLIC_SKILLS:
+                    self.learn_skill(v)
+                else:
+                    left.append(QCMD_MOVE)
+            elif kind == 'recipe':
+                if v in _COLLECTION_IDS['recipe']:
+                    self.unlock_collection('recipe', [v])
+                else:
+                    left.append(QCMD_RECIPE)
+            else:
+                left.append(v)
+        return left
+
+    def start_quest(self, q):
+        """Mark a quest in progress and apply its start commands that live in this file."""
+        self.set_quest_state(q, QUEST_ACTIVE)
+        return self._apply_effects(q, 'start')
+
+    def complete_quest(self, q, rewards=True):
+        """Mark a quest done. With rewards, also apply its start commands (when it had not started) and its done
+        commands: flags, moves and crafting recipes. Returns the command types only the game can carry out."""
+        before = self.quest_state(q)
+        self.set_quest_state(q, QUEST_DONE)
+        if not rewards or before == QUEST_DONE:
+            return []
+        left = self._apply_effects(q, 'start') if before < QUEST_ACTIVE else []
+        return left + self._apply_effects(q, 'done')
+
     # ---------- upgrades and features (function flags) ----------
     def upgrade(self, key):
         return all(self.get_flag(f) for f in UPGRADES[key][1])
@@ -1037,6 +1188,11 @@ def describe_changes(a, b, limit=400):
             out.append(f'{title}: {a.collection_count(kind)} -> {b.collection_count(kind)} of {len(entries)} {full}'
                        + (f' (new: {", ".join(done[:6])}{more})' if done else '')
                        + (f' ({other} other state change{"s" if other != 1 else ""})' if other else ''))
+    for q in sorted(QUESTS):
+        sa, sb = a.quest_state(q), b.quest_state(q)
+        if sa != sb:
+            name = quest_name(q)
+            out.append(f'Quest {q}{f" ({name})" if name else ""}: {QUEST_STATES.get(sa, sa)} -> {QUEST_STATES.get(sb, sb)}')
     for i in range(1, FLAG_COUNT):
         if a.get_flag(i) != b.get_flag(i):
             out.append(f'Flag {i} ({KNOWN_FLAGS.get(i, "unknown")}): {"on" if b.get_flag(i) else "off"}')

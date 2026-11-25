@@ -311,6 +311,9 @@ class AdvancedPage(Page):
 
     def set_gate(self, on):
         self.app.adv_unlocked = on
+        for p in self.app.pages.values():
+            if p is not self:
+                p.dirty = True
         self.refresh()
 
     def set_flag_mode(self, mode):
@@ -348,6 +351,7 @@ class AdvancedPage(Page):
         self.app.do(f'Flag {i} {"on" if on else "off"}', lambda: self.c.set_flag(i, on))
 
     def refresh(self):
+        self.gate.toggle.set_quiet(self.app.adv_unlocked)
         c = self.c
         if not c:
             return

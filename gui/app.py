@@ -48,10 +48,11 @@ def page_classes():
     from gui.pages.backups import BackupsPage
     from gui.pages.advanced import AdvancedPage
     from gui.pages.mods import ModsPage
+    from gui.pages.quests import QuestsPage
     return [('Save', [OverviewPage, BackupsPage]),
             ('Edit', [BagPage, CatalogPage, ResidentsPage, MovesPage, WardrobePage, CollectionPage]),
             ('Explore', [PhotosPage]),
-            ('Tools', [MapPage, ModsPage, AdvancedPage])]
+            ('Tools', [MapPage, ModsPage, QuestsPage, AdvancedPage])]
 
 
 class App(QMainWindow):
