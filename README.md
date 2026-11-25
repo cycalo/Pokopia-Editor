@@ -318,3 +318,7 @@ In Ground height enable Move objects and placed items up. Raise/Flatten lifts ob
 ## Apply ground height to Shift-drag rectangles
 
 Choose Raise, Lower or Flatten, then Shift-drag and release to apply to the rectangle. Esc cancels before release. The rectangle is one undo step and respects object lifting.
+
+## Pan with Space-drag after using sidebar controls
+
+Hold Space and left-drag over the map with any tool. Release Space to return to editing. Works while a sidebar control has focus.

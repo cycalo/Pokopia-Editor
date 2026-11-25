@@ -842,7 +842,28 @@ class MapView(QGraphicsView):
         self.anim = None
         self.pan = None
         self.space = False
+        QApplication.instance().installEventFilter(self)
 
+    def eventFilter(self, watched, event):
+        kind = event.type()
+        if kind == QEvent.ApplicationDeactivate:
+            self.space = False
+            self.pan = None
+            self.viewport().setCursor(self.page.cursor_for_tool())
+        if kind in (QEvent.ShortcutOverride, QEvent.KeyPress, QEvent.KeyRelease) and event.key() == Qt.Key_Space:
+            over_map = (self.isVisible() and QApplication.activeWindow() is self.window()
+                        and QApplication.activeModalWidget() is None
+                        and self.viewport().rect().contains(self.viewport().mapFromGlobal(QCursor.pos())))
+            if over_map or self.space:
+                if kind == QEvent.ShortcutOverride:
+                    event.accept()
+                elif not event.isAutoRepeat():
+                    self.space = kind == QEvent.KeyPress
+                    cursor = Qt.ClosedHandCursor if self.pan is not None else (
+                        Qt.OpenHandCursor if self.space else self.page.cursor_for_tool())
+                    self.viewport().setCursor(cursor)
+                return True
+        return super().eventFilter(watched, event)
 
     def zoom(self):
         return self.transform().m11()
@@ -900,7 +921,7 @@ class MapView(QGraphicsView):
     def mouseReleaseEvent(self, e):
         if self.pan is not None:
             self.pan = None
-            self.viewport().setCursor(self.page.cursor_for_tool())
+            self.viewport().setCursor(Qt.OpenHandCursor if self.space else self.page.cursor_for_tool())
             return
         super().mouseReleaseEvent(e)
         self.page.release(self.scene_pt(e), e)
@@ -1924,6 +1945,7 @@ class MapPage(Page):
                 'pick': 'Click an object or the ground to copy it into a tool'}[self.tool]
         if self.tool == 'height':
             text += '  ·  Shift-drag: apply to a rectangle'
+        text += '  ·  Space + drag: pan'
         self.hint.setText(text)
         self.hint.adjustSize()
         self.place_floating()
