@@ -50,7 +50,7 @@ MT_DECLARE_MOD()
 /* The Switch / emulator build fills two unused game functions; the first is full, so these helpers go to the second
    (build_emulator.py places .text2.* there). Nothing on Recompia. */
 #ifdef PAP_SWITCH
-#define CAVE2_FN __attribute__((section(".text2.moved")))
+#define CAVE2_FN __attribute__((section(".text2.moved"), noinline))
 #else
 #define CAVE2_FN
 #endif
@@ -122,7 +122,12 @@ MT_DECLARE_MOD()
 #define FN_BUBBLE     0x5A60E0ull    /* its execute (handler, controller, args): the owner must be a town Pokemon */
 #define ACT_GENERATE  709
 #define ACT_BUBBLE    705            /* a resident's Bubble: the animation for it */
-#define ACT_HUMAN_ZR  881            /* what the game starts on ZR when isDitto is 0 (an emote-like motion on a Pokemon): see "interacting" */
+#define ACT_HEADBUTT  917            /* a fruit tree's "Headbutt" prompt asks the player for it (tree vfunc 0x28, message 0x400) */
+#define FN_HIT_OBJECT 0x77CAA0ull    /* (objects, w1 kind 1..0xFFF, x, y, z, by, w6 hit type) -> the object anchored at the cell: its
+                                        vfunc 0x1F8(obj, type, by); a tree's (main+0x7A97F0) shakes for type 2 and drops its fruit */
+#define HIT_HEADBUTT  2
+#define TREE_VT       0x32669B0ull   /* a fruit tree's vtable */
+#define ACT_HUMAN_ZR  881           /* what the game starts on ZR when isDitto is 0 (an emote-like motion on a Pokemon): see "interacting" */
 #define FN_END_ACTION 0x27E804ull    /* (action controller, 1) the game's cancel of the action playing (what its cancel vfunc 0x27E770, e.g. a
                                         jump, does): the owner's vfunc 0xC0, the handlers' end, the controller's action 0 */
 #define FN_HAS_LAYER  0x38DF8ull     /* (world, &u8 kind, &cell) -> 1: the cell holds a block of that kind (a query) */
@@ -782,7 +787,7 @@ static void menu_tick(const MtPad *pad, uint32_t was, int key_menu) {
 #define P_HAND_MODE   0x53A8   /* u32: 2 = item in hand */
 #define P_HAND_ITEM   0x2AD8   /* u16: item id, 0xFFFF = none */
 #define P_PREVIEW     0x36A0   /* u8: placement preview shown */
-static int item_in_hand(uint64_t P) {
+CAVE2_FN static int item_in_hand(uint64_t P) {
     uint32_t mode = 0;
     uint16_t item = 0xFFFF;
     uint8_t preview = 0;
@@ -936,21 +941,86 @@ CAVE2_FN static int no_seat(MtHookCtx *c, int ask_reg, const char *what) {
    on the human's hand, FUN_71002A5150 (manager, kind) takes it off. Picking an item up attaches it as kind 7, slot 4 (found live
    2026-11-22 with hardware write watchpoints, re/live/watchw.py: P+0x1100 = the slot's model, P+0x110C = 0x3E9, the manager's
    +0x556 = P+0x1506 set to 1). A Pokemon has no such hand: the item stayed at its feet until the bag or a form change took it
-   off. A Pokemon holds nothing, so for a transformed player nothing is attached (confirmed in game 2026-11-22). */
+   off. A Pokemon holds nothing, so for a transformed player nothing is attached (confirmed in game 2026-11-22).
+   1.7.1: the same for the other players shown here as a Pokemon (Link Play): their pickups stuck to their Pokemon's face on this
+   screen until they opened the bag (seen with three players, 2026-11-23). */
 #define P_ATTACH 0xFB0ull
-static int h_attach(MtHookCtx *c, void *u) {
+static int remote_shown(uint64_t ch);   /* Link Play, below */
+CAVE2_FN static int h_attach(MtHookCtx *c, void *u) {
     (void)u;
-    uint64_t P = player();
+    uint64_t P = player(), ch = H->reg_get(c, 0) - P_ATTACH;
     uint16_t cur = 0;
     uint32_t kind = (uint32_t)H->reg_get(c, 5) & 0xFF;
-    static uint32_t told;
-    if (!P || H->reg_get(c, 0) != P + P_ATTACH || !r16(P + P_FORM_NOW, &cur) || !mod_form(cur)) return MT_CONTINUE;
-    if (kind < 32 && !(told >> kind & 1)) {
-        told |= 1u << kind;
-        mt_logf(H, M, MT_LOG_INFO, "nothing in hand for %s (form %u): attachment kind %u, model %u", form_name(cur), cur, kind,
-                (unsigned)(H->reg_get(c, 1) & 0xFFFF));
+    static uint32_t told, told_remote;
+    int own = P && ch == P, other = !own && remote_shown(ch);
+    if ((!own && !other) || !r16(ch + P_FORM_NOW, &cur) || !mod_form(cur)) return MT_CONTINUE;
+    uint32_t *t = own ? &told : &told_remote;
+    if (kind < 32 && !(*t >> kind & 1)) {
+        *t |= 1u << kind;
+        mt_logf(H, M, MT_LOG_INFO, "nothing in hand for %s%s (form %u): attachment kind %u, model %u", own ? "" : "another player's ",
+                form_name(cur), cur, kind, (unsigned)(H->reg_get(c, 1) & 0xFFFF));
     }
     return MT_HANDLED;
+}
+/* Drowning (1.7.1). Without Surf (function flag 0x94) a player in deep water drowns: FUN_71002DD384 (x0 the character, every frame
+   in water) starts action 875 (FUN_71007101E0(entity, 875)) and sets P+0x2427 bit 2 and P+0x5A49. On the human the action's motions
+   (690 -> 693, bubbles and a sound) take it back to the shore. A Pokemon floats with its own swim motions, but about 6 s in the
+   water the same check drowned it: it has no motion 690, so it played a stand-in and stayed in action 875 for good, stuck (seen as
+   Cramorant 2026-11-25, re/live/swimrec.py). A Pokemon swims, so for one the check is skipped: no bubbles, no sound, no stuck. And
+   one already in it (turned into a Pokemon while drowning) is let out by drown_tick: the action ended, both marks cleared. */
+#define ACT_DROWN    875
+static uint16_t action_now(uint64_t P);   /* below */
+#define P_DROWNING   0x5A49
+#define P_DROWN_BITS 0x2427   /* bit 2 */
+static int h_drown(MtHookCtx *c, void *u) {
+    (void)u;
+    uint64_t P = player(), ch = H->reg_get(c, 0);
+    uint16_t cur = 0;
+    static uint16_t told;
+    int own = P && ch == P;
+    if ((!own && !remote_shown(ch)) || !r16(ch + P_FORM_NOW, &cur) || !mod_form(cur)) return MT_CONTINUE;
+    if (own && told != cur) {
+        told = cur;
+        mt_logf(H, M, MT_LOG_INFO, "%s (form %u) swims: no drowning", form_name(cur), cur);
+    }
+    return MT_HANDLED;
+}
+/* Diving (1.7.1). FUN_710069E1E0(character) -> 1 when the player has learnt Dive (function flag 0x94): the underwater face, the camera
+   under the surface and the bubbles and sound of going under use it (with Dive learnt the user saw none of the drowning bubbles and
+   a level camera under water, as the human and as a Pokemon, 2026-11-25). A Pokemon swims, so for one it is always yes. */
+static int h_can_dive(MtHookCtx *c, void *u) {
+    (void)u;
+    uint64_t P = player(), ch = H->reg_get(c, 0);
+    uint16_t cur = 0;
+    if (!ch || (ch != P && !remote_shown(ch)) || !r16(ch + P_FORM_NOW, &cur) || !mod_form(cur)) return MT_CONTINUE;
+    H->reg_set(c, 0, 1);
+    return MT_HANDLED;
+}
+/* The game also reads the Dive flag directly about a hundred times (FUN_71000377CC / FUN_7100113F10(flag, ...)), the camera under the
+   surface and the bubbles going under among them: with only can_dive the user still saw both without Dive learnt (2026-11-25). So
+   the flag getter answers "learnt" for flag 0x94 while the player is a Pokemon; every other flag, and the human, are the game's. */
+#define FLAG_DIVE 0x94
+static int h_flag_get(MtHookCtx *c, void *u) {
+    (void)u;
+    if (((uint32_t)H->reg_get(c, 0) & 0xFF) != FLAG_DIVE || !atomic_load(&g_form)) return MT_CONTINUE;
+    uint64_t P = player();
+    uint16_t cur = 0;
+    if (!P || !r16(P + P_FORM_NOW, &cur) || !mod_form(cur)) return MT_CONTINUE;
+    H->reg_set(c, 0, 1);
+    return MT_HANDLED;
+}
+CAVE2_FN static void drown_tick(uint64_t P) {
+    uint16_t cur = 0;
+    uint8_t bits = 0;
+    uint64_t ctl = r64(P + P_ACTIONS);
+    MtCall c;
+    if (!ctl || action_now(P) != ACT_DROWN || !r16(P + P_FORM_NOW, &cur) || !mod_form(cur)) return;
+    memset(&c, 0, sizeof c);
+    c.x[0] = ctl, c.x[1] = 1;
+    H->call_guest(MAIN + FN_END_ACTION, &c);
+    w8(P + P_DROWNING, 0);
+    if (rd(P + P_DROWN_BITS, &bits, 1)) w8(P + P_DROWN_BITS, bits & ~4u);
+    mt_logf(H, M, MT_LOG_INFO, "%s (form %u) was drowning: let out%s", form_name(cur), cur, action_now(P) == ACT_DROWN ? ", but the action still plays" : "");
 }
 static int h_chair_use(MtHookCtx *c, void *u) { (void)u; return no_seat(c, 3, "sitting"); }
 static int h_bed_use(MtHookCtx *c, void *u) { (void)u; return no_seat(c, 2, "lying down"); }
@@ -1033,6 +1103,127 @@ static void fly_measure(float wrote, float dy, float dt) {
         mt_logf(H, M, MT_LOG_INFO, "flying: one unit of vertical speed moves %.0f cm a second (frames of %.1f ms)", g_fly_unit, dt * 1000.0f);
     }
 }
+/* 1.7.1: flying forward. From the hover the game starts a slow flight (a light tilt) or a fast one, by the move command its
+   transitions test (+0x22 type 0x0B, +0x24 9 slow / 8 fast). The slow start has no way to the fast flight: pushing the stick
+   further did nothing until its animation ended (1-2 s, measured live 2026-11-23 as Cramorant: motions 20 slow, 38 fast). So with
+   the stick at FLY_FAST_STICK or more the mod moves a slow start on to the fast one. Both are read from the species' own hover. */
+#define FLY_FAST_STICK 0.9f
+static uint64_t g_fs_hover, g_fs_slow, g_fs_fast;   /* kept only once both are found (a motion set's memory can be reused) */
+CAVE2_FN static void fly_starts(uint64_t recs, uint32_t count, uint64_t hover) {
+    if (hover == g_fs_hover && g_fs_slow && g_fs_fast) return;
+    g_fs_hover = hover, g_fs_slow = g_fs_fast = 0;
+    uint64_t tbl = r64(hover + 0x68);
+    uint16_t first = 0, n = 0;
+    if (!tbl || !r16(hover + 0x70, &first) || !r16(hover + 0x72, &n) || n > 32) return;
+    for (uint32_t k = first; k < (uint32_t)first + n; k++) {
+        uint64_t t = r64(tbl + 8 * k);
+        uint8_t cmd[4] = {0};
+        uint16_t to = 0;
+        if (!t || !rd(t + 0x22, cmd, 4) || !r16(t + 0xA, &to) || to >= count || cmd[0] != 0x0B) continue;
+        if (cmd[2] == 9 && !g_fs_slow) g_fs_slow = r64(recs + 8 * to);
+        if (cmd[2] == 8 && !g_fs_fast) g_fs_fast = r64(recs + 8 * to);
+    }
+}
+static int stick_far(float part) {
+    float lim = part * 32767.0f;
+    return (float)g_lx * g_lx + (float)g_ly * g_ly >= lim * lim;
+}
+/* Swimming forward (1.7.1): the same as flying. From the swim idle (as Cramorant motion 9; also the water entry 63) the move command
+   0x0B starts a slow swim (9: motion 26, which goes on to the slow loop 30) or a fast one (8: 44, then 48), and the slow start has
+   no way to the fast swim: a light tilt then the stick pushed further swam slowly for a second (user, 2026-11-25). Swim idles
+   differ by species, so a swimming motion (info kind 0x20) whose own transitions hold both starts is taken as the idle when the
+   player is in it (every swim passes through one), and a slow start with the stick far out is moved on to the fast start. */
+#define INFO_SWIMMING 0x20
+static int motion_kind(uint64_t rec, uint8_t *kind);   /* below */
+static uint64_t g_ss_set, g_ss_idle, g_ss_slow, g_ss_fast;
+static int g_ss_scanned;
+/* The slow and fast starts in a motion's own transitions (move command 0x0B, 9 / 8): 1 when it has both (a swim idle) */
+CAVE2_FN static int swim_starts(uint64_t rec, uint64_t recs, uint32_t count, uint64_t *slow, uint64_t *fast) {
+    uint64_t tbl = r64(rec + 0x68);
+    uint16_t first = 0, n = 0;
+    uint8_t kind = 0;
+    *slow = *fast = 0;
+    if (!tbl || !motion_kind(rec, &kind) || kind != INFO_SWIMMING || !r16(rec + 0x70, &first) || !r16(rec + 0x72, &n) || n > 32) return 0;
+    for (uint32_t k = first; k < (uint32_t)first + n; k++) {
+        uint64_t tr = r64(tbl + 8 * k);
+        uint8_t cmd[4] = {0};
+        uint16_t to = 0;
+        if (!tr || !rd(tr + 0x22, cmd, 4) || !r16(tr + 0xA, &to) || to >= count || cmd[0] != 0x0B) continue;
+        if (cmd[2] == 9 && !*slow) *slow = r64(recs + 8 * to);
+        if (cmd[2] == 8 && !*fast) *fast = r64(recs + 8 * to);
+    }
+    return *slow && *fast;
+}
+
+/* Diving (1.7.1). Swimming, the game keeps a Pokemon at the surface, but the vertical speed (E_VY) still moves it, and once it stops
+   being written the game floats it back up by itself (tried live 2026-11-25 as Cramorant: down 2.3 blocks at about 160 cm/s, back to
+   the surface on letting go). So, like flying: ZL dives and ZR rises under the surface, with the flying ramps; at the surface ZR keeps
+   what it does there (a flyer takes off, another uses its ability). The surface is where the game holds the player when nothing is
+   pressed (g_sw_rest: the height on entering the water, then wherever it settles). Flying down into the water (ZL held, the feet in
+   it: P+0x245E bit 1) used to go on in the flying animation under water: a Pokemon with a swim idle is put into it there. */
+#define SWIM_TOP_CMS   240.0f
+#define SWIM_UNDER_CM  10.0f     /* deeper than this under the surface: ZR rises instead of taking off or the ability */
+#define P_WATER        0x245E    /* bit 1: the feet in water */
+static float g_sw_vy, g_sw_rest, g_sw_last_y;
+static int g_sw_in;
+static uint64_t g_sw_us, g_sw_still_since;
+static int swim_under(void) {   /* swimming below the surface: ZR is the rise there */
+    uint64_t t = r64(MAIN + ENTITY_TABLE), E = t ? r64(t + 0x58) : 0;
+    float y = 0;
+    uint8_t kind = 0;
+    return g_sw_in && E && motion_kind(r64(E + E_MOTION), &kind) && kind == INFO_SWIMMING && rd(E + E_Y, &y, 4) &&
+           y < g_sw_rest - SWIM_UNDER_CM;
+}
+CAVE2_FN static void swim_tick(uint64_t P) {
+    uint64_t t = r64(MAIN + ENTITY_TABLE), E = t ? r64(t + 0x58) : 0, set = E ? r64(E + E_MSET) : 0;
+    uint64_t recs = set ? r64(set + 0xC8) : 0, cur = E ? r64(E + E_MOTION) : 0, slow, fast, us = now_us(), now = now_ms();
+    uint32_t count = 0, b = g_prev_buttons;
+    uint8_t kind = 0, water = 0;
+    float y = 0, dt = g_sw_us && us > g_sw_us ? (float)(us - g_sw_us) / 1e6f : 0.0f;
+    if (dt > 0.05f) dt = 0.05f;
+    g_sw_us = us;
+    if (set != g_ss_set) g_ss_set = set, g_ss_idle = g_ss_slow = g_ss_fast = 0, g_ss_scanned = 0;   /* another form (or a reused set) */
+    if (!recs || !cur || !rd(set + 0xD0, &count, 4) || !motion_kind(cur, &kind) || !rd(E + E_Y, &y, 4)) return;
+    int zl = (b & MT_PAD_ZL) != 0, zr = (b & MT_PAD_ZR) != 0;
+    int combo = (b & (MT_PAD_LEFT | MT_PAD_UP | MT_PAD_RIGHT | MT_PAD_DOWN | MT_PAD_LSTICK | MT_PAD_RSTICK)) != 0;
+    if (kind == INFO_FLYING && zl && !zr && !combo && rd(P + P_WATER, &water, 1) && (water & 2)) {   /* flown down into the water */
+        if (!g_ss_idle && !g_ss_scanned) {   /* once per form: the species' swim idle, if it swims */
+            g_ss_scanned = 1;
+            for (uint32_t i = 0; i < count && i < 400 && !g_ss_idle; i++) {
+                uint64_t r = r64(recs + 8 * i);
+                if (r && swim_starts(r, recs, count, &slow, &fast)) g_ss_idle = r, g_ss_slow = slow, g_ss_fast = fast;
+            }
+        }
+        if (g_ss_idle) {
+            w64(E + E_MOTION, g_ss_idle);
+            g_sw_in = 1, g_sw_rest = y, g_sw_last_y = y, g_sw_still_since = now, g_sw_vy = 0;
+            mt_logf(H, M, MT_LOG_INFO, "flew into the water at %.0f: swimming", y);
+        }
+        return;
+    }
+    if (kind != INFO_SWIMMING) {
+        g_sw_in = 0, g_sw_vy = 0;
+        return;
+    }
+    if (!g_sw_in) g_sw_in = 1, g_sw_rest = y, g_sw_last_y = y, g_sw_still_since = now, g_sw_vy = 0;   /* into the water */
+    /* fast swim: a slow start with the stick far out */
+    if (cur != g_ss_idle && cur != g_ss_slow && cur != g_ss_fast) {
+        if (swim_starts(cur, recs, count, &slow, &fast)) g_ss_idle = cur, g_ss_slow = slow, g_ss_fast = fast;
+    } else if (cur == g_ss_slow && g_ss_fast && stick_far(FLY_FAST_STICK)) w64(E + E_MOTION, g_ss_fast);
+    /* diving and rising */
+    int dir = combo ? 0 : zl && !zr ? -1 : zr && !zl && y < g_sw_rest - SWIM_UNDER_CM ? 1 : 0;
+    float was = g_sw_vy, top = SWIM_TOP_CMS;
+    if (dir) g_sw_vy = approach(g_sw_vy * dir < 0 ? 0 : g_sw_vy, dir * top, top / FLY_RAMP_S * dt);
+    else g_sw_vy = approach(g_sw_vy, 0, top / FLY_BRAKE_S * dt);
+    if (dir > 0 && y + g_sw_vy * dt >= g_sw_rest) g_sw_vy = 0;   /* no rising out of the water: the game holds the surface */
+    if (g_sw_vy != 0.0f || was != 0.0f) wf(E + E_VY, g_sw_vy / g_fly_unit);
+    /* the surface: where the player stays once nothing moves it for half a second */
+    float d = y - g_sw_last_y;
+    if (d < 0) d = -d;
+    if (dir || g_sw_vy != 0.0f || d >= 1.0f) g_sw_still_since = now, g_sw_last_y = y;
+    else if (now - g_sw_still_since >= 500 && y > g_sw_rest - 300.0f) g_sw_rest = y;
+}
+
 static void fly(uint64_t P) {
     (void)P;
     /* The emulator version saw the buttons about 12 times a second; here they are read every frame, so a few frames of
@@ -1076,9 +1267,11 @@ static void fly(uint64_t P) {
     cur = r64(E + E_MOTION), ci = cur ? r64(cur + 8) : 0, idle = r64(recs + 8 * MOTION_IDLE);
     if (!ci || !rd(ci, &motion, 1)) goto still;
     if (motion != INFO_FLYING) {   /* on foot or falling: ZR pressed (not just still held) takes off */
-        if (g_takeoff && !zl) w64(E + E_MOTION, hover);
+        if (g_takeoff && !zl && !swim_under()) w64(E + E_MOTION, hover);   /* under water ZR rises (swim_tick) */
         goto still;
     }
+    fly_starts(recs, count, hover);
+    if (cur == g_fs_slow && g_fs_fast && stick_far(FLY_FAST_STICK)) w64(E + E_MOTION, g_fs_fast);
     if (timed) fly_measure(wrote, y - last_y, dt);
     if (zr && zl) {   /* drop, once both are really held; until then slow to a hover */
         if (!g_both_since) g_both_since = now;
@@ -1430,6 +1623,7 @@ static void abilities(uint64_t P) {
     }
     if (!press || now < g_ab_ready_at) return;
     if (press == PRESS_ZR && atomic_load(&g_fly) && can_fly()) return;   /* a flying Pokemon's ZR flies */
+    if (press == PRESS_ZR && swim_under()) return;   /* under water ZR rises */
     ability_start(P, now);
 }
 
@@ -1699,6 +1893,70 @@ static int h_motion_reset(MtHookCtx *c, void *u) {
     return MT_CONTINUE;
 }
 
+/* ---------------------------------------------------------------- headbutt (1.7.1)
+ * A fruit tree's prompt starts action 917 on the player. The action has no handler: on the human, the Headbutt motion (1340, then
+ * 1343) hits the cell in front through the game's hit code (main+0x4296B4 -> FN_HIT_OBJECT, hit type 2), and the tree's vfunc 0x1F8
+ * starts its shake; its next update drops the fruit. A Pokemon has no such motion (it plays a stand-in), so nothing hits the tree:
+ * the animation played, no fruit fell. So once a transformed player's 917 has played HEADBUTT_HIT_MS (about when the human's motion
+ * hits), the mod makes the same hit on the fruit tree nearest the cell in front (within two cells). Found live 2026-11-25:
+ * a hardware watchpoint on a tree's shake timer (+0x4C) during the human headbutt. */
+#define HEADBUTT_HIT_MS 400
+static uint64_t g_hb_at;
+static int g_hb_was;
+CAVE2_FN static int hit_at(int16_t x, int16_t y, int16_t z, uint32_t type) {   /* the object's answer (1: a tree shakes), -1 failed */
+    uint64_t objects = r64(MAIN + OBJECTS);
+    MtCall c;
+    if (!objects) return -1;
+    memset(&c, 0, sizeof c);
+    c.x[0] = objects, c.x[1] = 1, c.x[2] = (uint16_t)x, c.x[3] = (uint8_t)y, c.x[4] = (uint16_t)z, c.x[5] = 0, c.x[6] = type;
+    if (H->call_guest(MAIN + FN_HIT_OBJECT, &c) != MT_OK) return -1;
+    return (int)(c.x[0] & 0xFF);
+}
+/* The object anchored at the cell (the placed objects' map at objects+0x46D0: node +0 left, +8 right, +0x20 key x | y << 16 |
+   z << 32, +0x28 the object), as FN_HIT_OBJECT finds it. 0: none */
+CAVE2_FN static uint64_t object_at(int x, int y, int z) {
+    uint64_t objects = r64(MAIN + OBJECTS), head = objects + 0x46D0, best = head, node = objects ? r64(head) : 0;
+    uint64_t key = (uint64_t)(uint16_t)x | (uint64_t)(uint8_t)y << 16 | (uint64_t)(uint16_t)z << 32;
+    if (x < 0 || y < 0 || y > 0xFF || z < 0) return 0;
+    for (int n = 0; node && n < 64; n++) {
+        if (r64(node + 0x20) < key) node = r64(node + 8);
+        else best = node, node = r64(node);
+    }
+    return best != head && r64(best + 0x20) == key ? r64(best + 0x28) : 0;
+}
+CAVE2_FN static void headbutt(uint64_t P) {
+    uint16_t a = action_now(P), cur = 0;
+    uint64_t now = now_ms();
+    int is = a == ACT_HEADBUTT && r16(P + P_FORM_NOW, &cur) && mod_form(cur);
+    if (is && !g_hb_was) g_hb_at = now + HEADBUTT_HIT_MS;
+    g_hb_was = is;
+    if (!g_hb_at || now < g_hb_at) return;
+    g_hb_at = 0;
+    if (!is) return;   /* ended early, or the player turned human (the game's own headbutt then) */
+    Target t;
+    memset(&t, 0, sizeof t);
+    if (!target_front(P, &t)) return;
+    /* The prompt reaches a tree up to two cells away (in game: tree at (964, 33, 920), the cell in front (964, 33, 921)), so the mod
+       looks for the fruit tree itself: within two cells of the player, the one nearest the cell in front. */
+    static const int8_t DX[4] = {0, 1, 0, -1}, DZ[4] = {1, 0, -1, 0};
+    int cx = t.x - DX[t.dir], cz = t.z - DZ[t.dir], best = 1 << 30, bx = 0, by = 0, bz = 0;
+    for (int dx = -2; dx <= 2; dx++)
+        for (int dz = -2; dz <= 2; dz++)
+            for (int dy = -1; dy <= 1; dy++) {
+                int x = cx + dx, y = t.y + dy, z = cz + dz;
+                if (r64(object_at(x, y, z)) != MAIN + TREE_VT) continue;
+                int d = (x - t.x) * (x - t.x) + (z - t.z) * (z - t.z);
+                if (d < best) best = d, bx = x, by = y, bz = z;
+            }
+    if (best == 1 << 30) {
+        mt_logf(H, M, MT_LOG_INFO, "headbutt: no fruit tree near (%d, %d, %d)", t.x, t.y, t.z);
+        return;
+    }
+    int r = hit_at((int16_t)bx, (int16_t)by, (int16_t)bz, HIT_HEADBUTT);
+    mt_logf(H, M, MT_LOG_INFO, "headbutt: the tree at (%d, %d, %d) %s (cell in front (%d, %d, %d))", bx, by, bz,
+            r > 0 ? "shakes" : r == 0 ? "did not shake (no fruit, or shaken a moment ago)" : "could not be hit", t.x, t.y, t.z);
+}
+
 static int h_player_tick(MtHookCtx *c, void *u) {   /* blr x8 near the top of the player's update: x0 = the character */
     (void)u;
     uint64_t P = player(), ch = H->reg_get(c, 0);
@@ -1710,6 +1968,8 @@ static int h_player_tick(MtHookCtx *c, void *u) {   /* blr x8 near the top of th
     load_tick(P);
     keep_form(P);
     interact_tick(P);
+    drown_tick(P);
+    if (!g_menu && atomic_load(&g_form)) swim_tick(P);
     uint16_t cur = 0;
     r16(P + P_FORM_NOW, &cur);
     holds_tick(&g_holds, cur, atomic_load(&g_form), g_load, now_ms());
@@ -1719,6 +1979,8 @@ static int h_player_tick(MtHookCtx *c, void *u) {   /* blr x8 near the top of th
     if (!g_menu && atomic_load(&g_form) && atomic_load(&g_fly)) fly(P);
     if (!g_menu && atomic_load(&g_form) && atomic_load(&g_abilities)) abilities(P);
     else g_ab_phase = 0, g_ab_action = 0;
+    if (atomic_load(&g_form)) headbutt(P);
+    else g_hb_at = 0, g_hb_was = 0;
     return MT_CONTINUE;
 }
 
@@ -1813,7 +2075,7 @@ static int h_face(MtHookCtx *c, void *u) {
    x23 = the player: for the local player flying as the mod's Pokemon, the game sees bit 0 clear and handles the buttons as on
    the ground. The flags themselves (physics) are not touched. */
 #define BODY_AIR 1u
-static int h_air_menu(MtHookCtx *c, void *u) {
+CAVE2_FN static int h_air_menu(MtHookCtx *c, void *u) {
     (void)u;
     uint64_t P = player();
     if (!P || H->reg_get(c, 23) != P || !atomic_load(&g_form) || !atomic_load(&g_interact) || !in_flight()) return MT_CONTINUE;
@@ -1836,7 +2098,8 @@ MT_EXPORT int mod_init(const MtHost *host, MtMod *mod) {
         {"probe", h_probe},
         {"char_setup", h_char_setup},   {"player_tick", h_player_tick}, {"to_human", h_to_human},
         {"motion_reset", h_motion_reset}, {"face", h_face}, {"chair_use", h_chair_use}, {"bed_use", h_bed_use},
-        {"attach", h_attach},           {"air_menu", h_air_menu},
+        {"attach", h_attach},           {"air_menu", h_air_menu}, {"drown", h_drown},
+        {"can_dive", h_can_dive},       {"flag_get", h_flag_get},
     };
     for (size_t i = 0; i < sizeof hooks / sizeof hooks[0]; i++) {
         int rc = H->hook(M, hooks[i].point, hooks[i].fn, NULL);
@@ -1877,4 +2140,7 @@ PAP_POINT(chair_use, h_chair_use)
 PAP_POINT(bed_use, h_bed_use)
 PAP_POINT(attach, h_attach)
 PAP_POINT(air_menu, h_air_menu)
+PAP_POINT(drown, h_drown)
+PAP_POINT(can_dive, h_can_dive)
+PAP_POINT(flag_get, h_flag_get)
 #endif

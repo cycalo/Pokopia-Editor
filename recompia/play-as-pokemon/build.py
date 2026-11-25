@@ -53,6 +53,9 @@ HOOKS = [
     ('attach', 0x2A5D5C, 0xD503237F, 'puts a model on the player hand (entry): nothing for a transformed player (a picked-up item stuck at the feet)'),
     ('bed_use', 0x79D948, 0xD503237F, 'a player lies down on a bed (entry): not while transformed (a Pokemon gets stuck there)'),
     ('air_menu', 0x3164A4, 0x360000C8, 'tbz w8, #0 in the button handler (w8 = body flags, bit 0 in the air): the bag while flying'),
+    ('flag_get', 0x113F10, 0xD503237F, 'function flag getter (entry): Dive (flag 0x94) reads as learnt while transformed (camera, bubbles)'),
+    ('can_dive', 0x69E1E0, 0xD503237F, 'can this character dive (entry; Dive, function flag 0x94): yes for a Pokemon (no drowning bubbles, the underwater camera)'),
+    ('drown', 0x2DD384, 0xD503237F, 'the drowning check (entry, each frame in water without Surf): never for a Pokemon (no drowning motion: stuck)'),
 ]
 
 DESCRIPTION = (

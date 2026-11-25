@@ -193,3 +193,21 @@ name = "air_menu"   # tbz w8, #0 in the button handler (w8 = body flags, bit 0 i
 target = "main+0x3164a4"
 word = 0x360000c8
 kind = "take_over"
+
+[[hooks."2.0.1"]]
+name = "flag_get"   # function flag getter (entry): Dive (flag 0x94) reads as learnt while transformed (camera, bubbles)
+target = "main+0x113f10"
+word = 0xd503237f
+kind = "take_over"
+
+[[hooks."2.0.1"]]
+name = "can_dive"   # can this character dive (entry; Dive, function flag 0x94): yes for a Pokemon (no drowning bubbles, the underwater camera)
+target = "main+0x69e1e0"
+word = 0xd503237f
+kind = "take_over"
+
+[[hooks."2.0.1"]]
+name = "drown"   # the drowning check (entry, each frame in water without Surf): never for a Pokemon (no drowning motion: stuck)
+target = "main+0x2dd384"
+word = 0xd503237f
+kind = "take_over"
