@@ -149,6 +149,9 @@ def column_layers(island, wx, wz):
     """Vertical contents, including hidden objects and contiguous terrain bands."""
     rows = [(o.y + o.h - 1, o.y, o.name, o.handle)
             for o in island.objects_in(wx, wz, wx, wz)]
+    # Negative handles identify read-only discovery markers, never editable objects.
+    rows += [(y, y, 'Glowing Block', -index - 1)
+             for index, x, y, z, _ in island.glowing_blocks() if x == wx and z == wz]
     start, previous = 0, 0
     for y in range(129):
         cell = island.get_cell(wx, y, wz) if y < 128 else None
@@ -547,6 +550,20 @@ class OverlayItem(QGraphicsItem):
             p.setPen(pen)
             p.setBrush(QColor(acc.red(), acc.green(), acc.blue(), 40))
             p.drawRect(QRectF(wx - X0, wz - Z0, 1, 1))
+            p.restore()
+        if page.opts['discoveries']:
+            transform = p.worldTransform()
+            p.save()
+            p.resetTransform()
+            icon = T.glyph_icon(T.G['star'], 'gold', 18)
+            for _, wx, wy, wz, _ in isl.glowing_blocks():
+                point = transform.map(QPointF(wx - X0 + 0.5, wz - Z0 + 0.5))
+                if not page.view.viewport().rect().adjusted(-18, -18, 18, 18).contains(point.toPoint()):
+                    continue
+                p.setPen(QPen(QColor(T.P['gold']), 1.5))
+                p.setBrush(QColor(10, 16, 24, 210))
+                p.drawEllipse(point, 11, 11)
+                icon.paint(p, QRect(round(point.x()) - 9, round(point.y()) - 9, 18, 18))
             p.restore()
         # brush
         b = page.brush_at
@@ -1107,7 +1124,7 @@ class MapPage(Page):
         self.area, self.pending, self.highlight, self.view_data = None, None, None, None
         self.loading = set()
         self.opts = dict(textures=True, contours=False, objects=True, icons=True, homes=True, habitats=True,
-                         grid=False, areas=True, minimap=True)
+                         grid=False, areas=True, minimap=True, discoveries=True)
         self.tool = 'select'
         self.selection = []
         self.sel_habitat = None
@@ -1258,7 +1275,7 @@ class MapPage(Page):
                                 ('icons', 'Object icons', 'When zoomed in close'), ('habitats', 'Habitats', ''),
                                 ('homes', 'Resident homes', ''), ('areas', 'Area names', ''),
                                 ('contours', 'Height lines', 'Every 4 blocks'), ('grid', 'Grid', 'Chunks, or blocks up close'),
-                                ('minimap', 'Mini map', '')):
+                                ('minimap', 'Mini map', ''), ('discoveries', 'Glowing Blocks', 'Saved treasure spots, including buried ones')):
             row = W.ToggleRow(text, note)
             row.toggle.set_quiet(self.opts[key])
             row.toggle.toggled.connect(lambda on, k=key: self.set_opt(k, on))
@@ -2276,7 +2293,12 @@ class MapPage(Page):
         self.layer_entries = rows
         self.position_stack_button()
         objects = sum(handle is not None and handle >= 0 for _, _, _, handle in rows)
-        self.layer_summary.setText(f'X {wx} · Z {wz}\n{objects} objects · {len(rows) - objects} terrain layers')
+        discoveries = sum(handle is not None and handle < 0 for _, _, _, handle in rows)
+        terrain = len(rows) - objects - discoveries
+        summary = f'{objects} objects · {terrain} terrain layers'
+        if discoveries:
+            summary += f' · {discoveries} glowing ' + ('spot' if discoveries == 1 else 'spots')
+        self.layer_summary.setText(f'X {wx} · Z {wz}\n{summary}')
         group = None
         last_height = None
         for top, bottom, name, handle in rows:
@@ -2302,6 +2324,8 @@ class MapPage(Page):
     def layer_icon(self, row, size=24):
         island = self.isl()
         top, bottom, name, handle = row
+        if handle is not None and handle < 0:
+            return T.glyph_icon(T.G['star'], 'gold', size)
         if handle is not None:
             obj = island.by_handle.get(handle)
             return QIcon(self.app.assets.item(obj.item, size)) if obj and obj.item else T.glyph_icon(T.G['grid'], 'muted', size)
@@ -2591,9 +2615,22 @@ class MapPage(Page):
         if self.tool == 'select':
             if btn != Qt.LeftButton:
                 return False
+            discovery = None
+            if self.opts['discoveries'] and not mods & Qt.ShiftModifier:
+                candidates = [(x, z) for _, x, y, z, _ in isl.glowing_blocks()
+                              if ((sp.x() - (x - isl.x0 + 0.5)) ** 2 +
+                                  (sp.y() - (z - isl.z0 + 0.5)) ** 2) * self.view.zoom() ** 2 <= 121]
+                discovery = min(candidates, key=lambda pos: (pos[0] - wx) ** 2 + (pos[1] - wz) ** 2) if candidates else None
+            if discovery:
+                wx, wz = discovery
             self.layer_cell = (wx, wz)
             self.update_layer_inspector()
             self.overlay.update()
+            if discovery:
+                self.selection = []
+                self.sel_habitat = None
+                self.update_inspector()
+                return True
             if mods & Qt.ShiftModifier:
                 self.drag = dict(kind='box', a=sp, b=sp, add=bool(mods & Qt.ControlModifier))
                 return True

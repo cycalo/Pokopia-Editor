@@ -1,3 +1,4 @@
+# Linux port modifications by frinimini, 2026-11-25. See CREDITS.md.
 """Editable islands (G00/STGDAT##.BIN): terrain blocks, placed objects, habitats and the separate areas in each file.
 
 Island file layout (decompressed, own findings from real saves, 2026-11-18):
@@ -54,6 +55,11 @@ AIR, BEDROCK, OBJECT = 0, 1, 0x7FF
 ID_MASK = 0x7FF
 PLAYER = 0x200 << 11          # "placed by the player" cell flag
 FREE_LINK = 0xFFFFFFFF
+# Read-only treasure position table. Verified against a known glowing spot before
+# breaking, after breaking, and after collecting its drop on 2026-11-25.
+# The fourth u16 and the surrounding counters are not yet decoded.
+GLOWING_POSITIONS = 0x15CF36
+GLOWING_SLOTS = 25
 NO_DATA = 255
 SEA_LEVEL = 31
 COMPRESS_LEVEL = 9            # smaller than the game's own file; the game reads any zlib stream
@@ -316,6 +322,15 @@ class Island:
                         if bx0 <= x1 and bx1 >= x0 and bz0 <= z1 and bz1 >= z0:
                             seen.add(o.handle)
                             yield o
+
+    def glowing_blocks(self):
+        """Saved, uncleared treasure coordinates for the supported island format."""
+        positions = []
+        for index in range(GLOWING_SLOTS):
+            x, y, z, flags = struct.unpack_from('<HHHH', self.d, GLOWING_POSITIONS + index * 8)
+            if (x or y or z) and 0 <= y < 128 and self.has_chunk(x, z):
+                positions.append((index, x, y, z, flags))
+        return positions
 
     def set_cut(self, y):
         """Look inside: ignore everything above height y (127 = see everything). Rescans the surface."""
@@ -714,6 +729,7 @@ class Island:
             n += 1
         return n
 
+
     def set_liquid(self, cols, bid):
         """Turn the ground block of each column into a full liquid block (a one-deep pool). Returns the count."""
         if self.cls(bid) != C_LIQUID:
@@ -739,6 +755,7 @@ class Island:
                 return c
         return AIR
 
+
     def raise_ground(self, cols, bid=None):
         n = 0
         for wx, wz in cols:
@@ -752,6 +769,7 @@ class Island:
             self.set_cell(wx, y + 1, wz, (bid if bid else c & ID_MASK) | PLAYER)
             n += 1
         return n
+
 
     def lower_ground(self, cols):
         n = 0
@@ -781,6 +799,7 @@ class Island:
                     break
                 n += k
         return n
+
 
     # ------------------------------------------------------------------ object edits
     def _rec(self, i):

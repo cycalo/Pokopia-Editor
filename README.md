@@ -306,3 +306,7 @@ Click a map cell with Select, then its stack badge to browse icons by height. Se
 ## Remember tool preferences across editor sessions
 
 Reopening restores tool choices, brushes, filters, map view and the last page. Preferences are saved when switching pages and closing.
+
+## Reveal saved Glowing Block positions on island maps
+
+Enable Glowing Blocks under Map overlays and click a gold star to inspect its height. Reload after an in-game save; unopened rewards remain unknown.

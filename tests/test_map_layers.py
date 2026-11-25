@@ -46,3 +46,14 @@ class LayerTests(unittest.TestCase):
                                    layer_cell=(40, 50), app=SimpleNamespace(assets=assets))
             MapPage.layer_icon(page, (36, 30, pi.block_name(block), None), 48)
             assets.item.assert_called_once_with(pi.block_item(block), 48)
+
+    def test_discovery_layers_are_readonly_markers(self):
+        island = SimpleNamespace(get_cell=lambda *args: 0, objects_in=lambda *args: iter(()),
+                                 glowing_blocks=lambda: [(13, 1006, 36, 1137, 0)])
+        rows = column_layers(island, 1006, 1137)
+        self.assertEqual(rows, [(36, 36, 'Glowing Block', -14)])
+        page = SimpleNamespace(show_height=Mock(), selection=[99], sel_habitat=None,
+                               update_inspector=Mock(), overlay=Mock(), habitats_item=Mock())
+        MapPage.select_layer(page, 36, -14)
+        self.assertEqual(page.selection, [])
+        self.assertEqual(column_layers(island, 1005, 1137), [])
