@@ -14,11 +14,14 @@ https://github.com/berichan/PokoHex
 
 ## Linux port
 
-Linux modifications by frinimini, November 24, 2026, add AppImage packaging,
+Linux modifications by frinimini, November 24–25, 2026, add AppImage packaging,
 Linux settings storage, folder opening, emulator detection, bundled UI icons,
 experimental procfs live memory access and launching emulators as child processes.
 The fork also adds map brush shapes and height-layer inspection, and updates setup
-documentation and release links.
+documentation and release links. Version 1.1.0 adds persistent tool preferences,
+catalog icons and tile contents, saved Glowing Block markers, object lifting with
+terrain, rectangle height and paint tools, painting underlying terrain, and
+spacebar panning after sidebar interaction.
 These changes are distributed under the project's GPLv3 license.
 
 Source and build instructions are available at

@@ -38,8 +38,9 @@ Close your emulator before opening a save. The editor searches standard Linux em
 save locations. Use **Open → Browse for a folder** to select a save manually, including
 Recompia saves. The save folder contains `G00/CMNDAT.BIN`.
 
-Download the [Linux AppImage v1.1.0](https://github.com/frinimini/Pokopia-Editor-Linux/releases/tag/linux-v1.1.0),
-or follow [AppImage build instructions](#linux-build) to build it yourself.
+Download the [Linux AppImage v1.1.0](https://github.com/frinimini/Pokopia-Editor-Linux/releases/tag/linux-v1.1.0).
+See [v1.1.0 features and instructions](docs/releases/1.1.0.md) for the new controls.
+See [AppImage build instructions](#linux-build) to build it yourself.
 The AppImage has been built and tested on Ubuntu 26.10 x86_64 and requires glibc 2.44.
 GUI startup, all 12 pages with a real save copy, and 11 save round-trip/edit checks passed.
 Older distributions have yet to be verified. The release includes checksums, source code and bundled dependency notices.
@@ -299,30 +300,57 @@ viewing. Visibility switches are grouped separately under Map overlays.
 These controls change the view and selection. Viewing different heights does not
 change save data. The groups describe occupied Y heights.
 
-## Browse tile contents with catalog icons
+## Remembered tool preferences
 
-Click a map cell with Select, then its stack badge to browse icons by height. Select an entry to reveal terrain or select an object.
+The editor restores the last page, tool choices, map brushes, height options,
+visibility switches, map zoom and position for the last save, search filters,
+item-browser category/layout, mod selections and photo position. Preferences are
+saved when changing pages and closing the editor. Existing settings are supported.
 
-## Remember tool preferences across editor sessions
+Terrain entries in Height layers use the Item Catalog icon through the existing
+block-to-item ID mapping. Terrain without a catalog item uses a texture thumbnail. Click the
+stack badge beside an inspected tile to open its contents as an icon grid. Filter
+by Y height and select an object to return to the map with that object selected.
+Terrain entries reveal their height and clear the previous object selection.
 
-Reopening restores tool choices, brushes, filters, map view and the last page. Preferences are saved when switching pages and closing.
+## Glowing Blocks
 
-## Reveal saved Glowing Block positions on island maps
+Map overlays includes a Glowing Blocks switch. Gold stars mark saved treasure
+positions, including buried spots. Clicking a marker inspects that tile; its Height
+layers group and contents dialog include a read-only Glowing Block entry at its Y
+height. Selecting the entry reveals its height without selecting an editable object.
 
-Enable Glowing Blocks under Map overlays and click a gold star to inspect its height. Reload after an in-game save; unopened rewards remain unknown.
+The position table was checked against an in-game spot at X 1006, Y 36, Z 1137 using
+three backed-up states. Breaking the block cleared that position. Collecting the
+resulting disc left the position cleared. Other markers still need in-game testing.
+Reward types and the table's additional fields remain undecoded. Marker display
+uses the saved state, so reload after an in-game save to refresh it.
 
-## Lift placed objects and stacks when raising terrain
+## Raising ground beneath objects
 
-In Ground height enable Move objects and placed items up. Raise/Flatten lifts obstructions and stacks; lowering leaves them in place. Loose drops and Glowing Blocks are excluded. Undo restores the whole stroke.
+Ground height has a **Move objects and placed items up** option. When enabled,
+Raise and the raising part of Flatten lift obstructing objects and their stacks
+onto the new surface, preserving their horizontal positions. The choice is remembered.
+Terrain and object movement undo together. A blocked destination cancels the stroke.
+Lowering leaves objects in place. Loose dropped collectibles and Glowing Blocks
+are not moved by this option.
 
-## Apply ground height to Shift-drag rectangles
+## Rectangular height edits
 
-Choose Raise, Lower or Flatten, then Shift-drag and release to apply to the rectangle. Esc cancels before release. The rectangle is one undo step and respects object lifting.
+With Ground height selected, **Shift + drag** marks a rectangle. Release to apply
+the selected Raise, Lower or Flatten mode to every cell in it. Esc cancels before
+release. The object-lifting option applies, and the rectangle is one undo step.
 
-## Pan with Space-drag after using sidebar controls
+## Panning with the spacebar
 
-Hold Space and left-drag over the map with any tool. Release Space to return to editing. Works while a sidebar control has focus.
+Hold **Space + drag** over the map to pan with any tool, including Ground height,
+even after using sidebar controls. Release Space to resume editing.
 
-## Paint rectangles and all underlying terrain layers
+## Painting rectangles and terrain layers
 
-In Paint ground, Shift-drag and release to paint a rectangle. Enable Paint all terrain layers below above Brush shape to include existing terrain beneath the surface. Bedrock, water, air, objects and buried building blocks are preserved. The checkbox is remembered and the action undoes together.
+In **Paint ground**, **Shift + drag** paints a rectangle on release (Esc cancels).
+Enable **Paint all terrain layers below** to paint the surface and existing terrain
+beneath it with the chosen block. Bedrock, liquids, empty spaces, objects and
+buried building blocks are preserved. The checkbox is remembered; brush strokes
+and rectangles each undo as one action. Height limits restrict painting to the
+visible surface and terrain below it.
