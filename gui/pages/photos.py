@@ -1,3 +1,4 @@
+# Linux port modifications by frinimini, 2026-11-25. See CREDITS.md.
 from PySide6.QtCore import QAbstractListModel, QModelIndex, QRectF, QSize, Qt
 from PySide6.QtGui import QImage, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QAbstractItemView, QFileDialog, QHBoxLayout, QLabel, QListView, QSizePolicy, QStyle,
@@ -156,6 +157,10 @@ class PhotosPage(Page):
             self.model.set([pil_to_pixmap(t) for t in app.album_thumbs])
         self.empty.setVisible(n == 0)
         self.viewer.setVisible(n > 0)
+        pending = getattr(self, '_pending_photo', None)
+        if n and pending is not None:
+            self._pending_photo = None
+            self.list.setCurrentIndex(self.model.index(min(pending, n - 1)))
         if n == 0:
             self.empty.text.setText('The album is empty.')
         elif self.cur() is None:

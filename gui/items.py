@@ -1,3 +1,4 @@
+# Linux port modifications by frinimini, 2026-11-25. See CREDITS.md.
 """Item browser shared by the Bag and Item Catalog pages: search, categories, filters, grid/list, drag source."""
 import html
 from PySide6.QtCore import (QAbstractListModel, QByteArray, QMimeData, QModelIndex, QPoint, QRect, QRectF, QSize, Qt,
@@ -389,6 +390,32 @@ class ItemBrowser(QWidget):
             if counts.get(key):
                 self.cat_box.addItem(f'{glyph}  {label}  ({counts[key]:,})', key)
         self.cat_box.blockSignals(False)
+
+    def preferences(self):
+        return dict(query=self.q.text(), category=self.category, sort=self.sort, mode=self.mode, item=self.current_id(),
+                    filters={name: getattr(self, name).isChecked() for name in
+                             ('c_icons', 'c_catalog', 'c_dedupe', 'c_dlc', 'c_event')})
+
+    def restore_preferences(self, state):
+        if isinstance(state.get('query'), str):
+            self.q.setText(state['query'])
+        category = state.get('category')
+        if category is None or any(category == key for key, *_ in pi.CATEGORIES):
+            self.set_category(category)
+            if hasattr(self, 'cat_box'):
+                self.cat_box.setCurrentIndex(max(0, self.cat_box.findData(category)))
+        if state.get('sort') in ('name', 'id', 'cat'):
+            self.sort_box.setCurrentIndex(('name', 'id', 'cat').index(state['sort']))
+        if state.get('mode') in ('grid', 'list'):
+            self.set_mode(state['mode'])
+        filters = state.get('filters', {})
+        if isinstance(filters, dict):
+            for name in ('c_icons', 'c_catalog', 'c_dedupe', 'c_dlc', 'c_event'):
+                if isinstance(filters.get(name), bool):
+                    getattr(self, name).setChecked(filters[name])
+            self._opts()
+        if state.get('item') in self.model.ids:
+            self.view.setCurrentIndex(self.model.index(self.model.ids.index(state['item'])))
 
     def _cat_from_box(self, n):
         self.category = self.cat_box.itemData(n)

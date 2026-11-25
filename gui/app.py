@@ -1,6 +1,6 @@
-# Linux port modifications by frinimini, 2026-11-24. See CREDITS.md.
+# Linux port modifications by frinimini, 2026-11-25. See CREDITS.md.
 """Main window: sidebar, header, status bar, pages, and all save / undo / file handling."""
-import datetime, json, os, subprocess, sys, threading
+import datetime, json, os, subprocess, sys, tempfile, threading
 from shiboken6 import isValid
 
 from PySide6.QtCore import QByteArray, QObject, QSize, Qt, QTimer, QUrl, Signal
@@ -84,7 +84,7 @@ class App(QMainWindow):
         self.emu_timer.start()
         last = self.settings.get('last_folder')
         last = last if last and px.save_header(last) else None
-        pref = self.settings.get('start_with', 'emulator')
+        pref = self.settings.get('start_with', 'last')
         start = folder or (last if pref == 'last' else None) or px.default_save(pref if pref != 'last' else 'emulator') or last
         if start:
             self.load(start, quiet=True)
@@ -134,21 +134,39 @@ class App(QMainWindow):
     def read_settings(self):
         try:
             with open(SETTINGS, encoding='utf-8') as f:
-                return json.load(f)
+                settings = json.load(f)
+                if not isinstance(settings, dict):
+                    return {}
+                if not isinstance(settings.get('tools', {}), dict):
+                    settings['tools'] = {}
+                return settings
         except Exception:
             return {}
+
+    def capture_tool_settings(self):
+        tools = self.settings.setdefault('tools', {})
+        for name, page in getattr(self, 'pages', {}).items():
+            tools[name] = page.preferences()
+        if self.save:
+            self.settings['last_page'] = self.current
 
     def write_settings(self):
         if not self.persist:
             return
+        self.capture_tool_settings()
         self.settings['theme'] = T.NAME
         self.settings['last_folder'] = self.save.folder if self.save else self.settings.get('last_folder')
         self.settings['qt_geometry'] = bytes(self.saveGeometry().toBase64()).decode('ascii')
+        temporary = None
         try:
-            with open(SETTINGS, 'w', encoding='utf-8') as f:
+            with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=os.path.dirname(SETTINGS),
+                                             prefix='.settings-', delete=False) as f:
+                temporary = f.name
                 json.dump(self.settings, f, indent=1)
+            os.replace(temporary, SETTINGS)
         except OSError:
-            pass
+            if temporary and os.path.exists(temporary):
+                os.unlink(temporary)
 
     def restore_geometry(self):
         g = self.settings.get('qt_geometry')
@@ -344,6 +362,7 @@ class App(QMainWindow):
         self.redo()
 
     def toggle_theme(self):
+        self.capture_tool_settings()
         T.set_theme('light' if T.NAME == 'dark' else 'dark')
         T.clear_icon_cache()
         self.assets._pm.clear()
@@ -374,6 +393,8 @@ class App(QMainWindow):
         if page.dirty:
             page.dirty = False
             page.refresh()
+        page.restore_preferences()
+        self.write_settings()
 
     def update_chrome(self):
         c = self.save.common if self.save else None
@@ -593,7 +614,8 @@ class App(QMainWindow):
             if hasattr(p, 'save_changed'):
                 p.save_changed()
         if self.stack.currentWidget() is self.welcome:
-            self.current = 'Overview'
+            last_page = self.settings.get('last_page', 'Overview')
+            self.current = last_page if last_page in self.pages else 'Overview'
         self.data_changed()
         self.write_settings()
         if not quiet:

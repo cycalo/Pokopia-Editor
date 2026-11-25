@@ -2077,6 +2077,7 @@ class MapPage(Page):
             self.view.fly_to(QPointF(x - v.isl.x0 + 0.5, z - v.isl.z0 + 0.5), 8.0, 650)
         elif fresh:
             self.fit(True, animate=False)
+        self.restore_map_view()
 
     def prepare_view(self, v):
         """Qt pixmaps for an IslandView (made in the GUI thread)."""
@@ -2131,8 +2132,111 @@ class MapPage(Page):
         self.zone_note.setText('Besides the island itself, the file holds separate areas far out in empty space. '
                                'Click one to go there.' if n > 1 else 'This file holds only the island.')
 
+    def preferences(self):
+        state = super().preferences()
+        if not getattr(self, '_preferences_restored', False):
+            return state
+        state.update(tool=self.tool, options=dict(self.opts), area=self.area, stack_height=self.stack_height,
+                     paint_block=self.paint_block, place_var=self.place_var, place_dir=self.place_dir,
+                     stamp_rot=self.stamp_rot, recipe=self.recipe['dex'] if self.recipe else None,
+                     height_mode=self.height_mode, flatten_y=self.flatten_y, show_heights=self.show_heights,
+                     cut_enabled=self.cut_row.toggle.isChecked(), cut_y=self.cut_slider.value(),
+                     searches={name: getattr(self, name).text() for name in
+                               ('place_search', 'block_search', 'recipe_search')},
+                     brushes=[dict(shape=controls[0].currentData(), width=controls[1].value(), depth=controls[2].value())
+                              for height, controls in sorted(self.brush_controls.items())])
+        pending = getattr(self, '_pending_map_view', None)
+        if pending:
+            state['view'] = pending
+        elif self.view_data:
+            center = self.view.mapToScene(self.view.viewport().rect().center())
+            state['view'] = dict(folder=self.app.save.folder, area=self.area, zoom=self.view.zoom(),
+                                 center=[center.x(), center.y()])
+        return state
 
+    def restore_preferences(self):
+        if getattr(self, '_preferences_restored', False):
+            return
+        state = self.app.settings.get('tools', {}).get(self.nav, {})
+        super().restore_preferences()
+        if not isinstance(state, dict):
+            return
+        for height, brush in enumerate(state.get('brushes', [])[:2] if isinstance(state.get('brushes'), list) else []):
+            if not isinstance(brush, dict):
+                continue
+            shape, width, depth, _ = self.brush_controls[bool(height)]
+            index = shape.findData(brush.get('shape'))
+            if index >= 0:
+                shape.setCurrentIndex(index)
+            if type(brush.get('width')) is int:
+                width.setValue(brush['width'])
+            if type(brush.get('depth')) is int:
+                depth.setValue(brush['depth'])
+        options = state.get('options', {})
+        if isinstance(options, dict):
+            for key, row in self.layer_rows.items():
+                if isinstance(options.get(key), bool):
+                    row.toggle.setChecked(options[key])
+        for key in ('paint_block', 'place_var', 'place_dir', 'stamp_rot'):
+            if type(state.get(key)) is int:
+                setattr(self, key, state[key])
+        self.place_dir %= 4
+        self.stamp_rot %= 4
+        if type(state.get('flatten_y')) is int:
+            self.flat_spin.setValue(state['flatten_y'])
+        if state.get('height_mode') in dict((key, name) for key, name, _ in HEIGHT_MODES):
+            self.set_height_mode(state['height_mode'])
+        if isinstance(state.get('show_heights'), bool):
+            self.heights_check.setChecked(state['show_heights'])
+        searches = state.get('searches', {})
+        if isinstance(searches, dict):
+            for name in ('place_search', 'block_search', 'recipe_search'):
+                if isinstance(searches.get(name), str):
+                    getattr(self, name).setText(searches[name])
+        self.stack_height = state.get('stack_height') if type(state.get('stack_height')) is int else None
+        self.load_recipes()
+        self.recipe = self.recipes.get(str(state.get('recipe')))
+        tool = state.get('tool')
+        if isinstance(tool, str) and tool in {key for key, _, _ in TOOLS}:
+            self.set_tool(tool)
+        self._pending_map_view = state.get('view') if isinstance(state.get('view'), dict) else None
+        self._pending_map_cut = (state.get('cut_enabled') is True,
+                                 state.get('cut_y') if type(state.get('cut_y')) is int else 60)
+        enabled, height = self._pending_map_cut
+        self.cut_slider.blockSignals(True)
+        self.cut_slider.setValue(height)
+        self.cut_slider.blockSignals(False)
+        self.cut_row.toggle.set_quiet(enabled)
+        self.cut_slider.setEnabled(enabled)
+        self.cut_lbl.setText(f'Y {self.cut_slider.value()}' if enabled else 'All')
+        area = state.get('area')
+        if self.app.save and type(area) is int and area in self.app.save.stage_files() and area != self.area:
+            self.choose(area)
+        elif self.view_data:
+            self.restore_map_view()
 
+    def restore_map_view(self):
+        pending_cut = getattr(self, '_pending_map_cut', None)
+        if pending_cut is not None:
+            self._pending_map_cut = None
+            enabled, height = pending_cut
+            self.cut_slider.blockSignals(True)
+            self.cut_slider.setValue(height)
+            self.cut_slider.blockSignals(False)
+            self.cut_row.toggle.set_quiet(enabled)
+            self.apply_cut()
+        view = getattr(self, '_pending_map_view', None)
+        if not view:
+            return
+        self._pending_map_view = None
+        if view.get('folder') != self.app.save.folder or view.get('area') != self.area:
+            return
+        center, zoom = view.get('center'), view.get('zoom')
+        if (isinstance(center, list) and len(center) == 2 and
+                all(type(value) in (int, float) and math.isfinite(value) for value in center) and
+                type(zoom) in (int, float) and math.isfinite(zoom) and zoom > 0):
+            self.view.set_zoom(zoom)
+            self.view.centerOn(*center)
 
     def show_all_heights(self):
         self.cut_timer.stop()

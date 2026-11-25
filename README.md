@@ -302,3 +302,7 @@ change save data. The groups describe occupied Y heights.
 ## Browse tile contents with catalog icons
 
 Click a map cell with Select, then its stack badge to browse icons by height. Select an entry to reveal terrain or select an object.
+
+## Remember tool preferences across editor sessions
+
+Reopening restores tool choices, brushes, filters, map view and the last page. Preferences are saved when switching pages and closing.

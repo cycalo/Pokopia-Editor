@@ -1,4 +1,4 @@
-# Linux port modifications by frinimini, 2026-11-24. See CREDITS.md.
+# Linux port modifications by frinimini, 2026-11-25. See CREDITS.md.
 from PySide6.QtGui import QDesktopServices
 import datetime, os
 from PySide6.QtCore import Qt, QUrl
@@ -153,7 +153,7 @@ class OverviewPage(Page):
         self.show_start()
 
     def show_start(self):
-        key = self.app.settings.get('start_with', 'emulator')
+        key = self.app.settings.get('start_with', 'last')
         self.start_btns[key].setChecked(True)
         if key == 'last':
             self.start_note.setText('Opens the save you used last time.')
