@@ -1,5 +1,7 @@
+# Linux port modifications by frinimini, 2026-11-24. See CREDITS.md.
 """Main window: sidebar, header, status bar, pages, and all save / undo / file handling."""
-import datetime, json, os, sys, threading
+import datetime, json, os, subprocess, sys, threading
+from shiboken6 import isValid
 
 from PySide6.QtCore import QByteArray, QObject, QSize, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QGuiApplication, QKeySequence, QShortcut, QPalette, QColor
@@ -12,11 +14,15 @@ import pokopia_save as ps
 from gui import theme as T
 from gui import widgets as W
 from gui.assets import Assets, app_icon, set_app_id
-from gui.updates import UpdateChecker
+from gui.updates import UpdateChecker, RELEASES
 from version import VERSION_STR, WHATS_NEW, WHATS_NEW_PAGE
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if getattr(sys, 'frozen', False):  # the exe keeps its settings in %APPDATA%\Pokopia Editor
+if sys.platform.startswith('linux'):
+    _USER_DIR = os.path.join(os.environ.get('XDG_CONFIG_HOME') or os.path.expanduser('~/.config'), 'pokopia-editor')
+    os.makedirs(_USER_DIR, exist_ok=True)
+    SETTINGS = os.path.join(_USER_DIR, 'settings.json')
+elif getattr(sys, 'frozen', False):  # Windows release settings
     _APPDATA = os.environ.get('APPDATA') or os.path.expanduser('~')
     _USER_DIR = os.path.join(_APPDATA, 'Pokopia Editor')
     _OLD_DIR = os.path.join(_APPDATA, 'Pokopia Save Editor')  # name before 1.2
@@ -57,6 +63,7 @@ def page_classes():
 class App(QMainWindow):
     def __init__(self, folder=None, theme=None, persist=True):
         super().__init__()
+        self.emulator_process = None
         self.persist = persist  # False for screenshot runs, which must not change the user's settings
         self.settings = self.read_settings()
         T.set_theme(theme or self.settings.get('theme', 'dark'))
@@ -113,7 +120,7 @@ class App(QMainWindow):
                        'Click "Update available" at the bottom right to download it.', 'info')
 
     def open_update(self):
-        QDesktopServices.openUrl(QUrl(getattr(self, 'update_url', None) or 'https://github.com/cycalo/Pokopia-Editor/releases/latest'))
+        QDesktopServices.openUrl(QUrl(getattr(self, 'update_url', None) or RELEASES))
 
     def set_check_updates(self, on):
         self.settings['check_updates'] = bool(on)
@@ -413,13 +420,44 @@ class App(QMainWindow):
         if hasattr(self, 'toasts'):
             self.toasts.layout()
 
+    def launch_emulator(self, path=None):
+        if self.emulator_process and self.emulator_process.poll() is None:
+            return self.toast('The emulator launched by this editor is already running.', 'info')
+        if not path:
+            path, _ = QFileDialog.getOpenFileName(
+                self, 'Choose emulator executable', self.settings.get('emulator_executable', os.path.expanduser('~')))
+        if not path:
+            return
+        path = os.path.abspath(path)
+        environment = os.environ.copy()
+        if sys.platform.startswith('linux') and getattr(sys, 'frozen', False):
+            if environment.get('LD_LIBRARY_PATH_ORIG'):
+                environment['LD_LIBRARY_PATH'] = environment['LD_LIBRARY_PATH_ORIG']
+            else:
+                environment.pop('LD_LIBRARY_PATH', None)
+            for variable in ('QT_PLUGIN_PATH', 'QT_QPA_PLATFORM_PLUGIN_PATH', 'QML2_IMPORT_PATH'):
+                if sys._MEIPASS in environment.get(variable, ''):
+                    environment.pop(variable, None)
+        try:
+            self.emulator_process = subprocess.Popen([path], cwd=os.path.dirname(path), env=environment)
+        except OSError as error:
+            return self.toast(f'Could not launch emulator: {error}', 'err')
+        self.settings['emulator_executable'] = path
+        self.write_settings()
+        self.toast('Emulator launched. Load into the world before using Transform.', 'info')
+
     # ---------- background work ----------
     def run_bg(self, kind, key, fn):
         def work():
             try:
-                self.bridge.done.emit(kind, key, fn(), None)
+                result, error = fn(), None
             except Exception as ex:
-                self.bridge.done.emit(kind, key, None, str(ex) or ex.__class__.__name__)
+                result, error = None, str(ex) or ex.__class__.__name__
+            try:
+                self.bridge.done.emit(kind, key, result, error)
+            except RuntimeError:
+                if isValid(self.bridge):
+                    raise
         threading.Thread(target=work, daemon=True).start()
 
     def on_result(self, kind, key, result, err):
@@ -613,7 +651,11 @@ class App(QMainWindow):
 
 def main(argv=None):
     args = list(sys.argv[1:] if argv is None else argv)
-    shot = theme = None
+    shot = theme = launch = None
+    if '--launch-emulator' in args:
+        i = args.index('--launch-emulator')
+        launch = args[i + 1]
+        del args[i:i + 2]
     if '--screenshot' in args:
         i = args.index('--screenshot')
         shot = args[i + 1]
@@ -630,6 +672,8 @@ def main(argv=None):
     qa.setFont(T.font(10))
     win = App(args[0] if args else None, theme, persist=not shot)
     win.show()
+    if launch:
+        win.launch_emulator(launch)
     if shot:
         from gui.shots import run_screenshots
         run_screenshots(win, shot)

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Pokopia Editor
+Comment=Edit Pokopia saves and manage mods
+Exec=PokopiaEditor %f
+Icon=pokopia-editor
+Terminal=false
+Categories=Game;Utility;
