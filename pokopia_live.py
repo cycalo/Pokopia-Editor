@@ -1,4 +1,5 @@
-"""Talk to a running Pokopia in a yuzu-family emulator (Windows only): change the player's form while playing.
+# Linux port modifications by frinimini, 2026-11-24. See CREDITS.md.
+"""Talk to a running Pokopia in a yuzu-family emulator (Windows and Linux): change the player's form while playing.
 
 The emulator maps the game's memory into its own process in one block ("fastmem"), so a game address is at
 host address = arena + game address. This module finds that block, checks that the mod's patch is loaded,
@@ -6,7 +7,7 @@ and writes the same few values the mod's button-combo cheat writes. It never tou
 
 Offsets are for Pokopia 2.0.0, update 655360 (build 76A489F3BD3642FA), the build the mods are made for.
 """
-import ctypes, hashlib, struct, subprocess, sys
+import ctypes, glob, hashlib, os, struct, subprocess, sys
 
 import pokopia_extras as px
 
@@ -52,6 +53,23 @@ def _kernel32():
 
 def emulator_pids():
     """[(pid, exe name)] of running Switch emulators."""
+    if sys.platform.startswith('linux'):
+        out = []
+        for entry in glob.glob('/proc/[0-9]*/comm'):
+            try:
+                with open(entry) as f:
+                    name = f.read().strip().lower()
+                try:
+                    executable = os.path.basename(os.readlink(os.path.join(os.path.dirname(entry), 'exe'))).lower()
+                except OSError:
+                    executable = name
+                if executable.endswith('.appimage'):
+                    continue  # AppImage's mount helper is a separate process
+                if any(executable.startswith(e) or name.startswith(e) for e in px.EMULATORS):
+                    out.append((int(entry.split('/')[2]), executable))
+            except OSError:
+                pass
+        return out
     if sys.platform != 'win32':
         return []
     try:
@@ -156,6 +174,71 @@ class Game:
         self.write(p + P_GO, b'\x01')
 
 
+
+class LinuxGame(Game):
+    """Access an emulator through Linux procfs with the current user's permissions."""
+
+    def close(self):
+        if self.handle is not None:
+            os.close(self.handle)
+            self.handle = None
+
+    def read(self, addr, n):
+        try:
+            data = os.pread(self.handle, n, self.arena + addr)
+        except OSError as error:
+            raise LiveError('Lost contact with the game. Is it still running?') from error
+        if len(data) != n:
+            raise LiveError('Could not read the complete game memory region.')
+        return data
+
+    def write(self, addr, data):
+        try:
+            written = os.pwrite(self.handle, data, self.arena + addr)
+        except OSError as error:
+            raise LiveError('Could not write to the game. Is it still running?') from error
+        if written != len(data):
+            raise LiveError('Could not write the complete game memory region.')
+
+
+def _attach_linux(pid, exe):
+    try:
+        handle = os.open(f'/proc/{pid}/mem', os.O_RDWR)
+    except PermissionError as error:
+        raise LiveError('Linux denied access to the emulator memory. The emulator must allow this '
+                        'editor to attach under the system ptrace policy.') from error
+    except FileNotFoundError:
+        return None
+    attached = False
+    try:
+        with open(f'/proc/{pid}/maps') as maps:
+            for line in maps:
+                fields = line.split()
+                if not fields[1].startswith('r'):
+                    continue
+                base, end = (int(value, 16) for value in fields[0].split('-'))
+                if end - base < 0x100:
+                    continue
+                try:
+                    head = os.pread(handle, 0x100, base)
+                    if hashlib.sha256(head).hexdigest() != HEAD_SHA256:
+                        continue
+                    pointer = os.pread(handle, 8, base + SELF_PTR[0])
+                    if len(pointer) != 8:
+                        continue
+                    main = struct.unpack('<Q', pointer)[0] - SELF_PTR[1]
+                    game = LinuxGame(None, handle, pid, exe, base - main, main)
+                    if main > 0 and game.alive():
+                        attached = True
+                        return game
+                except OSError:
+                    continue  # mappings can disappear while the process runs
+    finally:
+        if not attached:
+            os.close(handle)
+    return None
+
+
 def _attach(k, pid, exe):
     handle = k.OpenProcess(PROCESS_ACCESS, False, pid)
     if not handle:
@@ -182,15 +265,26 @@ def _attach(k, pid, exe):
 
 def connect():
     """Find the running game. Raises LiveError with the reason when it can't."""
-    if sys.platform != 'win32':
-        raise LiveError('Changing form while playing only works on Windows.')
+    if sys.platform != 'win32' and not sys.platform.startswith('linux'):
+        raise LiveError('Live memory editing is supported on Windows and Linux.')
     pids = emulator_pids()
     if not pids:
         raise LiveError('No emulator is running.')
-    k = _kernel32()
+    k = _kernel32() if sys.platform == 'win32' else None
+    errors = []
     for pid, exe in pids:
-        game = _attach(k, pid, exe)
+        if k:
+            game = _attach(k, pid, exe)
+        else:
+            try:
+                game = _attach_linux(pid, exe)
+            except (LiveError, OSError) as error:
+                errors.append(f'{exe} (PID {pid}): {error}')
+                continue
         if game:
             return game
+    if errors:
+        raise LiveError('Could not inspect every emulator process. ' + '; '.join(errors) +
+                        ' No supported game was found in the accessible processes.')
     raise LiveError('An emulator is running, but Pokopia 2.0.0 (update 655360) was not found in it. '
                     'Start the game first. Emulators other than the Yuzu family are not supported.')

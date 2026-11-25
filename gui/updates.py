@@ -1,3 +1,4 @@
+# Linux port modifications by frinimini, 2026-11-24. See CREDITS.md.
 """Background check for a newer GitHub release.
 
 One unauthenticated GET to the public releases API each time the app starts, sending nothing about the user.
@@ -19,7 +20,7 @@ RELEASES = f'https://github.com/{REPO}/releases/latest'
 
 
 def parse(tag):
-    m = re.fullmatch(r'v?(\d+)\.(\d+)(?:\.(\d+))?', (tag or '').strip())
+    m = re.fullmatch(r'(?:linux-)?v?(\d+)\.(\d+)(?:\.(\d+))?', (tag or '').strip())
     return tuple(int(x or 0) for x in m.groups()) if m else None
 
 

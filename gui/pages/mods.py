@@ -27,7 +27,8 @@ class ModsPage(Page):
         self.where = QComboBox()
         self.where.currentIndexChanged.connect(lambda *_: self.refresh())
         row = W.hbox(self.where, W.button('Choose folder…', T.G['folder'], self.choose_load),
-                     W.button('Open', T.G['open'], self.open_load))
+                     W.button('Open', T.G['open'], self.open_load),
+                     W.button('Launch emulator', T.G['play'], self.app.launch_emulator))
         row.setStretch(0, 1)
         emu.body.addLayout(row)
         lay.addWidget(emu)
