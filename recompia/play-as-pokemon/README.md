@@ -15,8 +15,10 @@ The [Play as Pokemon](../../mods/play-as-pokemon/README.md) mod for [Recompia](h
 | **ZL** while flying | Descend the same way; keep holding it on the ground to land |
 | **ZL + ZR** held while flying | Drop out of the air (press ZR again to take off) |
 | **ZR** (Pokémon that can't fly) or **ZL + D-pad Down** (any) | Use the Pokémon's ability on what is in front of you. Not ZL + D-pad Down while you hold a block or other item: the game raises and lowers it with ZL + D-pad Up / Down (1.7.1) |
-| **A** | Open doors, use the crafting bench and boxes, pick things up, as the human does (1.7.0) |
+| **A** | Open doors, use the crafting bench and boxes, pick things up, as the human does (1.7.0); headbutt a fruit tree so its fruit falls (1.7.1) |
 | **The bag** | Opens while flying too (1.7.1) |
+| **Left stick tilted all the way** | Fly and swim at full speed at once (1.7.1) |
+| **ZL** while swimming | Dive under the surface; **ZR** rises again, and at the surface does what it does on land (1.7.1) |
 
 Keyboard players can also set a key for "turn into", "turn back" and the ability, and change the F3 key, in the mod's settings.
 
@@ -24,7 +26,7 @@ Keyboard players can also set a key for "turn into", "turn back" and the ability
 
 1. Copy `recompia_play_as_pokemon-1.7.1.pkmod` into Recompia's `mods` folder (on Windows, next to `pkp.exe`), and remove an older version of it.
 2. Open `PokopiaLauncher.exe`, go to **Mods**, and allow the new mod's code when it asks.
-3. The first time these hook points are installed, the launcher rebuilds the game once before the next start (a few minutes). Updating from a version older than 1.5.0 rebuilds once more (1.5.0 added the hook point `motion_reset`); 1.6.0 added none; 1.7.0 adds `face`, `chair_use`, `bed_use` and `attach`, and 1.7.1 adds `air_menu`, so each of those updates rebuilds once more. Then press **Play**.
+3. The first time these hook points are installed, the launcher rebuilds the game once before the next start (a few minutes). Updating from a version older than 1.5.0 rebuilds once more (1.5.0 added the hook point `motion_reset`); 1.6.0 added none; 1.7.0 adds `face`, `chair_use`, `bed_use` and `attach`, and 1.7.1 adds `air_menu`, `flag_get`, `can_dive` and `drown`, so each of those updates rebuilds once more. Then press **Play**.
 
 The game log (`pkp.log`) should show `play_as_pokemon 1.7.1 started` and `[play_as_pokemon] ready: ZL + L3 turns into Ditto and back, ...`.
 
@@ -46,6 +48,8 @@ Since 1.5.0 climbing and descending handle like a ship: a tap of **ZR** (or **ZL
 
 The speeds are now the same at any frame rate. Up to 1.4.0 the mod gave the game one fixed speed every frame, and Recompia shortens the game's step above 60 fps, so how far a press took you changed with the frame rate. The mod now measures in flight how far the game moves you for a given speed and works from that; `pkp.log` notes it (`flying: one unit of vertical speed moves N cm a second`).
 
+**Fast flight at once** (1.7.1): with the left stick tilted all the way, the Pokémon goes straight into its fast flight. Before, it first played its slow flying start for about a second, which felt like lag. With the stick half tilted it still flies slowly. The mod reads both starts from the hover motion's own transitions (`0x0B` with 9 for the slow one, 8 for the fast one) and, at 90% tilt or more, moves a slow start on to the fast one.
+
 **Camera judder while flying:** Recompia's own **Running jump keeps speed** option (Settings > Game > Gameplay, on by default) treats the whole flight as a running jump. After you take off from a run it speeds up your flying steps by up to two times, by a factor it works out again every frame, so the camera jerks. Taking off while standing still doesn't trigger it, which is why it comes and goes. To fly smoothly, switch that option off (or set `[pkp] jump_momentum = 0` in `pkp.ini`; it applies on the next start).
 
 ## Abilities
@@ -66,6 +70,24 @@ Burn, Generate and Bubble act as one of the Pokémon living in the area (the gam
 Press the button once you have finished transforming: a press during the transformation is ignored (`busy` in `pkp.log`).
 
 `pkp.log` notes each use: `ability Grow: animation started, cell in front (x, y, z) ...` and `worked at` or `nothing at`.
+
+## Swimming and diving (1.7.1)
+
+A Pokémon in deep water swims as the human does, with its own swimming animations, and since 1.7.1:
+
+- **No drowning:** without Dive learnt, the game played the human's drowning (bubbles, a sound, back to the shore). A Pokémon has no drowning motion, so it got stuck. The mod skips that check for a Pokémon (hook point `drown`) and ends a drowning that had already started.
+- **Dive works as if learnt** while you're transformed (hook points `flag_get` and `can_dive`): no drowning bubbles, and the camera stays level under water. Your save's Dive is not changed.
+- **ZL dives** and **ZR rises** under the surface, ramping up like flying, up to 2.4 blocks a second. Let go and the game floats you back up. At the surface ZR does what it does on land: a flying Pokémon takes off, another uses its ability.
+- **Fast swimming:** with the left stick tilted all the way the Pokémon swims fast at once, as for flying.
+- **Flying into water:** flying down (ZL) into water switches you to swimming.
+
+`pkp.log` notes `<Pokémon> (form N) swims: no drowning`, `... was drowning: let out` and `flew into the water at ...: swimming`.
+
+A Pokémon that can't swim in the game (Charizard, for example) is untested in deep water: with drowning skipped it may stay on the bottom. Turn back with ZL + L3 if that happens.
+
+## Headbutting fruit trees (1.7.1)
+
+Headbutting a fruit tree while transformed played the animation, but no fruit fell. The human's Headbutt motion hits the tree at one frame of its animation, and a Pokémon's animation has no such frame. The mod now hits the fruit tree nearest the cell in front of you (within 2 cells) 0.4 seconds after the headbutt starts, with the same call the human's motion makes, so the tree shakes and drops its fruit. `pkp.log` notes `headbutt: the tree at (x, y, z) ...` or `headbutt: no fruit tree near ...`.
 
 ## Talking to Pokémon
 
@@ -105,6 +127,8 @@ Tested in Link Play with 1.4.0: transforming, walking, running, jumping and flyi
 
 **Ending a session while transformed** (fixed in 1.5.0): back in your own game, the host's Pokémon looked broken until they changed Pokémon, and the guest's own character stayed broken until a restart. When a session ends the game resets the world and unloads every Pokémon's animations, but the mod still counted the ones it had loaded as loaded, so it skipped loading them again (the host). The end-of-session message also turns the guest human, and the mod then took a hold on the human animations and let it go after the reset, which took away the game's own hold on them (the guest). 1.5.0 notices the reset (a new hook point, `motion_reset`) and forgets what it had loaded, and never touches the human animations. `pkp.log` notes the reset: `the game reset every Pokemon's animations ...`.
 
+**Picked-up items on another player's face** (fixed in 1.7.1): when another player shown as a Pokémon picked something up, your game put the item on their character's hand, which a Pokémon doesn't have, so it stuck to their face. Since 1.7.0 this was skipped only for your own character; now also for the other players shown as a Pokémon (`nothing in hand for another player's ...`). Every player needs 1.7.1 for it.
+
 **Abilities working only once** (fixed in 1.7.0): Grow (and sometimes the others) worked once, then said "busy" until you jumped or transformed again. On a resident the game's own Pokémon code ends the Grow action; on you nothing did, so the game thought it was still playing and refused the next one. The mod now ends the action it started once the effect has happened (when you use the ability again, or 3 seconds later), with the same call the game uses when a jump interrupts an action.
 
 **Blank eyes while swimming** (fixed in 1.7.0): as Froakie, Greninja, Cramorant and others, the eyes vanished in water. In water the game gives a player character its underwater face (face 22, made for the human and Ditto's Surf form); a Pokémon's model has no such face. The new hook point `face` (`main+0x2666C4`, just before the game sets the face) keeps the Pokémon's usual face instead, for you and for other players shown as a Pokémon.
@@ -125,6 +149,8 @@ The emulator version is an IPS patch plus a cheat file. Recompia runs the game a
 - world reset (1.5.0): the game's "release every motion set" (`main+0x8D12C0`, called only from its world reset `main+0xB6320`, which also runs when a Link Play session ends) is a hook point too; the mod forgets the animations it had loaded there, without releasing anything;
 - Link Play (1.4.0): the same update runs for the other players' characters. Each game receives the others' wanted form (`main+0x271360` stores it), but changes their form only through a form's transformation action (`main+0x2F6FCC`), which only the game's own forms have. So the mod loads the Pokémon's animations, then requests the form on their character itself, turns them back the same way, and keeps the stand-up stretch off them in the probe hook;
 - interacting (1.7.0): the player's `isDitto` byte (`+0x378D`) is cleared once the form has settled; a chair's "can this player sit" (`main+0x7C1838`) and a bed's (`main+0x79D948`) answer no for a transformed player at their entry, before they start the sit motion and set the player's activity (`[main+0x35650E8] + 0x140`, 15 for sitting, which stayed set); the player's hand-attachment manager (player `+0xFB0`, 14 slots of a fixed kind, the picked-up item is kind 7) gets nothing from `main+0x2A5D5C` while transformed;
+- swimming (1.7.1): the drowning check (`main+0x2DD384`, each frame in water without Surf) is skipped for a Pokémon; Dive (function flag `0x94`) reads as learnt while transformed, both in the function-flag getter (`main+0x113F10`, read in about 100 places) and in "can this character dive" (`main+0x69E1E0`); diving writes the vertical speed (`E+0xBCC`) as flying does; a slow swim start (the swim idle's `0x0B` 9 transition) moves on to the fast one (`0x0B` 8) at full tilt;
+- headbutt (1.7.1): a fruit tree's prompt starts action 917 on the player, which has no handler: the human's Headbutt motion hits through `main+0x77CAA0` (type 2) at one of its frames. For a transformed player the mod makes that call itself on the nearest fruit tree 0.4 s after the action starts;
 - abilities: the residents' specialty actions (Burn 700, Water 703, Bubble 705, Grow 706, Generate 709) only animate when the player asks for them, because the game applies their effect for residents only. So the mod plays the action for the animation and calls the effect itself on the cell in front of the player (found as the game finds the target of the player's own moves): Grow `main+0x1F1200`, Burn and Generate `main+0x77CEA0` (the object at the cell, as a town Pokémon), Bubble the handler of action 705, the Water Gun's hit `main+0x3694C0`.
 
 A test slot in unused game memory (`main+0x3D14D00`, used by nothing in normal play) lets a script on the PC run single ability steps; it does nothing unless a script writes its marker.

@@ -99,10 +99,12 @@ Turn into any Pokémon in Pokopia. Use their abilities: flying Pokémon can fly,
 | **ZL** while flying | Descend; hold on the ground to land |
 | **ZL + ZR** while flying | Drop out of the air |
 | **ZR** (Pokémon that can't fly) or **ZL + D-pad Down** | Use the Pokémon's ability: Grow, Burn, Water or Generate |
-| **A** | Open doors, craft, open boxes and the bag, pick things up and build, as a Pokémon too |
+| **A** | Open doors, craft, open boxes and the bag, pick things up, build and headbutt fruit trees, as a Pokémon too |
+| **ZL** / **ZR** while swimming | Dive / rise again |
 
 - **Only for Pokopia 2.0.0** (update 655360).
 - **Transform** on the Mods page needs the emulator on the same PC. On a console, pick the Pokémon before installing.
+- Tilt the left stick all the way to fly or swim fast. A Pokémon doesn't drown, and Dive works while you're transformed.
 - **Experimental forms**, below the Pokémon list, turn you into things like the Master Ball.
 
 **Without the editor:** `z-PlayAsPokemon-emulator-<version>.zip` from the [latest release](https://github.com/cycalo/Pokopia-Editor/releases/latest) (unzip into the emulator's `load` folder) or `z-PlayAsPokemon-SD-card-<version>.zip` (Atmosphère, untested). You start as Ditto; [how to start as another Pokémon](mods/play-as-pokemon/README-standalone.md#change-the-pokémon).
@@ -178,7 +180,7 @@ The exe stores its settings in `%APPDATA%\Pokopia Editor`.
 </details>
 
 <div align="center">
-<sub>Save edditor built with data from <a href="https://github.com/berichan/PokoHex">PokoHex</a>
+<sub>Save editor built with data from <a href="https://github.com/berichan/PokoHex">PokoHex</a>
 </div>
 <div align="center">
 <sub>Released under the <a href="LICENSE">GNU General Public License v3.0</a>. Pokémon names, icons and other game assets belong to Nintendo, Game Freak and The Pokémon Company. Fan-made tool, not affiliated with them.</sub>

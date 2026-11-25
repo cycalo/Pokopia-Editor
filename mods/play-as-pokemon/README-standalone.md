@@ -19,7 +19,10 @@ Only works on **Pokopia 2.0.0, update 655360**.
 | ZL (while flying) | Go down the same way. Keep holding on the ground to land |
 | ZL + ZR (while flying) | Drop out of the air |
 | ZR (Pokémon that can't fly) or ZL + D-pad Down | Use the Pokémon's ability: Grow, Burn, Water or Generate, on what is in front of you. While you hold a block, ZL + D-pad Up / Down move the block instead |
-| A | Open doors, use the crafting bench and boxes, open the bag and build, as your character does (also while flying). Chairs and beds stay for your character |
+| A | Open doors, use the crafting bench and boxes, open the bag and build, as your character does (also while flying), and headbutt fruit trees. Chairs and beds stay for your character |
+| ZL (while swimming) | Dive under the surface. ZR rises again |
+
+Tilt the left stick all the way to fly or swim fast at once.
 
 Talking to a Pokémon turns you back into your character for the conversation; walk off afterwards and you turn back into your Pokémon. In Link Play everyone needs the mod, and then the others see your Pokémon (with its animations) and you see theirs.
 

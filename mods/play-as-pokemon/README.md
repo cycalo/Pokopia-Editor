@@ -10,6 +10,7 @@ Turn into any Pokémon in Pokopia. Use their abilities: flying Pokémon can fly,
 | **ZL** while flying | Descend the same way; keep holding it on the ground to land |
 | **ZL + ZR** while flying | Drop out of the air |
 | **ZR** (Pokémon that can't fly) or **ZL + D-pad Down** | Use the Pokémon's ability: Grow, Burn, Water or Generate |
+| **ZL** while swimming | Dive under the surface; **ZR** rises again (1.7.1) |
 
 This mod replaces **Always Ditto** and **Play as Resident**. Remove those two before using it: they use some of the same buttons. The Pokopia Editor's **Mods** page does that for you when you press Install or Update.
 
@@ -49,13 +50,21 @@ The two towers are far larger than the camera expects. Press **Turn back** to re
 
 ## Flying
 
-Pokémon that hover or fly in the game (Charizard, Scyther, Noctowl, Venomoth, Volbeat, Combee, Vespiquen and others) can fly when you are one of them. You get their own hover and flying animations. Climbing and descending handle like a ship: a tap of ZR or ZL moves you a little (about a quarter of a block), holding it speeds up to 4 blocks a second, and letting go slows you down to a hover. Other Pokémon ignore the fly buttons.
+Pokémon that hover or fly in the game (Charizard, Scyther, Noctowl, Venomoth, Volbeat, Combee, Vespiquen and others) can fly when you are one of them. You get their own hover and flying animations. Climbing and descending handle like a ship: a tap of ZR or ZL moves you a little (about a quarter of a block), holding it speeds up to 4 blocks a second, and letting go slows you down to a hover. Other Pokémon ignore the fly buttons. Since 1.7.1, with the left stick tilted all the way the Pokémon goes straight into its fast flight instead of a second of slow flying first.
+
+## Swimming and diving
+
+Since 1.7.1 a Pokémon in deep water no longer gets stuck drowning, and Dive works as if learnt while you're transformed (no drowning bubbles, a level camera under water; your save is not changed). **ZL** dives and **ZR** rises under the surface; let go and you float back up. At the surface ZR does what it does on land. Full stick tilt swims fast at once, and flying down into water switches you to swimming. A Pokémon that can't swim in the game (Charizard, for example) is untested in deep water.
+
+## Headbutting fruit trees
+
+Since 1.7.1 headbutting a fruit tree as a Pokémon drops its fruit, as it does for your character. Before, only the animation played.
 
 ## Talking and Link Play
 
 Talking to most Pokémon makes the game turn you back into your character: the conversation needs it. The mod lets it, and turns you back into your Pokémon once the conversation is over and you walk off.
 
-In Link Play every player needs the mod. Then the other players see your Pokémon, walking and moving with its own animations, and you see theirs. Ending a session while transformed leaves everyone's character as it should be (fixed in 1.5). With three or four players a game could crash right after another player changed Pokémon; 1.6 loads a Pokémon's animations before changing anyone into it, which fixes that (details in the [Recompia README](../../recompia/play-as-pokemon/README.md#link-play)).
+In Link Play every player needs the mod. Then the other players see your Pokémon, walking and moving with its own animations, and you see theirs. Ending a session while transformed leaves everyone's character as it should be (fixed in 1.5). With three or four players a game could crash right after another player changed Pokémon; 1.6 loads a Pokémon's animations before changing anyone into it, which fixes that. Since 1.7.1 an item another player picks up no longer sticks to their Pokémon's face (details in the [Recompia README](../../recompia/play-as-pokemon/README.md#link-play)).
 
 ## Doors, crafting and the bag
 
@@ -112,7 +121,7 @@ The game identifies every character, including you, by a character number: your 
 Since 1.5 the patch runs the same code as the Recompia version: [recompia/play-as-pokemon/src/play_as_pokemon.c](../../recompia/play-as-pokemon/src/play_as_pokemon.c), compiled for the Switch's CPU by [src/build_emulator.py](src/build_emulator.py), with [src/switch/switch_host.c](src/switch/switch_host.c) doing inside the game what Recompia's mod loader does on the PC (memory, calls into the game, the controller through the game's own `nn::hid` functions, the clock). So both versions behave the same and get the same fixes.
 
 - The code goes into two functions of the game that nothing calls or points to (debug drawing code, at `main+0x6B32C0` and `main+0x6B8BA0`); the mod's variables into game memory nothing uses (`main+0x3D15000`).
-- At each of the mod's eight hook points (the same game instructions as the Recompia mod's `mod.toml`) the patch puts a jump to a small trampoline that saves the registers, runs the mod's handler and then either carries on with the game's own instruction or returns from the game's function.
+- At each of the mod's sixteen hook points (the same game instructions as the Recompia mod's `mod.toml`) the patch puts a jump to a small trampoline that saves the registers, runs the mod's handler and then either carries on with the game's own instruction or returns from the game's function.
 - The buttons are read from the controller every frame (handheld, or controller 1), so combos and flying react at once.
 - What the handlers do: while you're transformed the player's "desired form" reports your Pokémon and requests to turn back are ignored; the "something is in the way" check that starts Ditto's stand-up stretch passes; the Pokémon's animations are loaded (the game only loads those of Pokémon living in your town) and the form is built again once they are ready; flying Pokémon get the game's own hover motion and a climbing speed; abilities play the Pokémon's specialty animation and then call the effect on the cell in front of you; talking turns you back for the conversation; in Link Play the other players' Pokémon are shown the same way; and the game's world reset (the end of a Link Play session) makes the mod forget the animations it had loaded.
 
