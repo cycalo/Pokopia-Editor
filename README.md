@@ -298,3 +298,7 @@ viewing. Visibility switches are grouped separately under Map overlays.
 
 These controls change the view and selection. Viewing different heights does not
 change save data. The groups describe occupied Y heights.
+
+## Browse tile contents with catalog icons
+
+Click a map cell with Select, then its stack badge to browse icons by height. Select an entry to reveal terrain or select an object.

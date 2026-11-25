@@ -1,4 +1,4 @@
-# Linux port modifications by frinimini, 2026-11-24. See CREDITS.md.
+# Linux port modifications by frinimini, 2026-11-25. See CREDITS.md.
 """Island map editor: textured terrain, placed objects, habitats, homes and the separate areas of each island file.
 
 Tools: select / move objects, place objects, make habitats, paint ground blocks, ground height, pick.
@@ -9,10 +9,10 @@ import math
 import os
 from collections import Counter, OrderedDict
 
-from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer, QVariantAnimation, QEasingCurve, Signal, QPoint
+from PySide6.QtCore import QEvent, QPointF, QRect, QRectF, QSize, Qt, QTimer, QVariantAnimation, QEasingCurve, Signal, QPoint
 from PySide6.QtGui import (QBrush, QColor, QFont, QFontMetrics, QIcon, QImage, QPainter, QPainterPath, QPen, QPixmap,
                            QPolygonF, QCursor)
-from PySide6.QtWidgets import (QButtonGroup, QComboBox, QSpinBox, QFileDialog, QFrame, QGraphicsItem, QGraphicsScene, QGraphicsView,
+from PySide6.QtWidgets import (QApplication, QCheckBox, QAbstractItemView, QDialog, QDialogButtonBox, QButtonGroup, QComboBox, QSpinBox, QFileDialog, QFrame, QGraphicsItem, QGraphicsScene, QGraphicsView,
                                QGridLayout, QHBoxLayout, QLabel, QListView, QListWidget, QListWidgetItem, QPushButton,
                                QScrollArea, QSlider, QTreeWidget, QTreeWidgetItem, QStackedWidget, QToolButton, QVBoxLayout, QWidget)
 
@@ -821,6 +821,7 @@ class MapView(QGraphicsView):
         self.pan = None
         self.space = False
 
+
     def zoom(self):
         return self.transform().m11()
 
@@ -953,6 +954,8 @@ class MapView(QGraphicsView):
         super().scrollContentsBy(dx, dy)
         if hasattr(self.page, 'minimap'):
             self.page.minimap.update()
+        if hasattr(self.page, 'stack_button'):
+            self.page.position_stack_button()
 
 
 class ToolBox(QFrame):
@@ -1115,6 +1118,7 @@ class MapPage(Page):
         self.layer_cell = None
         self.layer_area = None
         self.layer_levels = []
+        self.stack_height = None
         self.brush = 1
         self.height_brush = 3
         self.brush_shape = self.height_brush_shape = 'circle'
@@ -1141,6 +1145,12 @@ class MapPage(Page):
         ml.addWidget(self.view, 1)
         self.scalebar = ScaleBar(self.view)
         self.minimap = Minimap(self)
+        self.stack_button = QToolButton(self.view.viewport())
+        self.stack_button.setIcon(T.glyph_icon(T.G['layers'], 'accent', 20))
+        self.stack_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.stack_button.setToolTip('Open the contents stacked at this tile')
+        self.stack_button.clicked.connect(self.open_tile_contents)
+        self.stack_button.hide()
         # tool bar
         self.toolbox = ToolBox(self)
         self.toolbox.setStyleSheet(f'QFrame#Tools {{ background: rgba(10,16,24,0.88); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; }}'
@@ -1282,6 +1292,7 @@ class MapPage(Page):
         self.layer_tree = QTreeWidget()
         self.layer_tree.setColumnCount(1)
         self.layer_tree.setHeaderHidden(True)
+        self.layer_tree.setIconSize(QSize(24, 24))
         self.layer_tree.setMinimumHeight(100)
         self.layer_tree.setMaximumHeight(220)
         self.layer_tree.setWordWrap(True)
@@ -1861,6 +1872,7 @@ class MapPage(Page):
                                     'gardens. The seabed can be painted too.')
             self.block_info.setText(f'Block: {pi.block_name(self.paint_block)}')
         self.view.viewport().setCursor(self.cursor_for_tool())
+        self.position_stack_button()
         self.stamp_ghost = None
         getattr(self, 'terrain', None) and self.terrain.update()
         self.update_hint()
@@ -1911,6 +1923,7 @@ class MapPage(Page):
         self.hint.move((v.width() - self.hint.width()) // 2, v.height() - self.hint.height() - 14)
         self.overlay_msg.adjustSize()
         self.overlay_msg.move((v.width() - self.overlay_msg.width()) // 2, (v.height() - self.overlay_msg.height()) // 2)
+        self.position_stack_button()
 
     # ---------- islands ----------
     def save_changed(self):
@@ -2118,6 +2131,9 @@ class MapPage(Page):
         self.zone_note.setText('Besides the island itself, the file holds separate areas far out in empty space. '
                                'Click one to go there.' if n > 1 else 'This file holds only the island.')
 
+
+
+
     def show_all_heights(self):
         self.cut_timer.stop()
         self.cut_row.toggle.set_quiet(False)
@@ -2144,6 +2160,8 @@ class MapPage(Page):
     def update_layer_inspector(self):
         self.layer_tree.clear()
         self.layer_levels = []
+        self.layer_entries = []
+        self.stack_button.hide()
         island = self.isl()
         if not island or self.layer_cell is None:
             self.layer_tree.hide()
@@ -2151,7 +2169,9 @@ class MapPage(Page):
             return
         wx, wz = self.layer_cell
         rows = column_layers(island, wx, wz)
-        objects = sum(handle is not None for _, _, _, handle in rows)
+        self.layer_entries = rows
+        self.position_stack_button()
+        objects = sum(handle is not None and handle >= 0 for _, _, _, handle in rows)
         self.layer_summary.setText(f'X {wx} · Z {wz}\n{objects} objects · {len(rows) - objects} terrain layers')
         group = None
         last_height = None
@@ -2167,14 +2187,113 @@ class MapPage(Page):
             item = QTreeWidgetItem(group, [f'{name} · {span}{status}'])
             item.setData(0, Qt.UserRole, (top, handle))
             item.setToolTip(0, 'Click to reveal this level and select the object, when present.')
-            if handle is not None:
-                obj = island.by_handle.get(handle)
-                if obj and obj.item:
-                    item.setIcon(0, QIcon(self.app.assets.item(obj.item, 20)))
+            item.setIcon(0, self.layer_icon((top, bottom, name, handle)))
+            if group.childCount() == 1:
+                group.setIcon(0, item.icon(0))
         self.layer_tree.expandAll()
         self.layer_tree.setVisible(bool(rows))
         if not rows:
             self.layer_summary.setText(f'X {wx} · Z {wz}\nNo terrain or placed objects at this cell.')
+
+    def layer_icon(self, row, size=24):
+        island = self.isl()
+        top, bottom, name, handle = row
+        if handle is not None:
+            obj = island.by_handle.get(handle)
+            return QIcon(self.app.assets.item(obj.item, size)) if obj and obj.item else T.glyph_icon(T.G['grid'], 'muted', size)
+        block = island.get_cell(self.layer_cell[0], bottom, self.layer_cell[1]) & pi.ID_MASK
+        item_id = pi.block_item(block)
+        if item_id:
+            return QIcon(self.app.assets.item(item_id, size))
+        from gui.maprender import look
+        texture = look().texture(block, size)
+        if texture is not None:
+            thumbnail = QPixmap.fromImage(pil_to_qimage(texture.convert('RGBA')))
+        else:
+            thumbnail = QPixmap(size, size)
+            thumbnail.fill(QColor(*look().color(block)))
+        return QIcon(thumbnail)
+
+    def position_stack_button(self):
+        island = self.isl()
+        entries = getattr(self, 'layer_entries', [])
+        if not island or self.layer_cell is None or self.tool != 'select' or len(entries) < 2:
+            self.stack_button.hide()
+            return
+        wx, wz = self.layer_cell
+        point = self.view.mapFromScene(QPointF(wx - island.x0 + 1, wz - island.z0))
+        if not self.view.viewport().rect().contains(point):
+            self.stack_button.hide()
+            return
+        self.stack_button.setText(str(len(entries)))
+        self.stack_button.adjustSize()
+        self.stack_button.move(point.x() + 3, max(0, point.y() - self.stack_button.height()))
+        self.stack_button.show()
+        self.stack_button.raise_()
+
+    def open_tile_contents(self):
+        island = self.isl()
+        if not island or self.layer_cell is None:
+            return
+        wx, wz = self.layer_cell
+        entries = column_layers(island, wx, wz)
+        dialog = QDialog(self.app)
+        dialog.setWindowTitle(f'Tile contents · X {wx} · Z {wz}')
+        dialog.resize(760, 560)
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(W.label('Select an object to work with it on the map, or terrain to reveal its height.', 'muted', wrap=True))
+        levels = QComboBox()
+        levels.addItem('All heights', None)
+        for height in sorted({row[0] for row in entries}, reverse=True):
+            levels.addItem(f'Y {height}', height)
+        layout.addWidget(levels)
+        contents = QListWidget()
+        contents.setViewMode(QListView.IconMode)
+        contents.setResizeMode(QListView.Adjust)
+        contents.setMovement(QListView.Static)
+        contents.setSelectionMode(QAbstractItemView.SingleSelection)
+        contents.setIconSize(QSize(48, 48))
+        contents.setGridSize(QSize(164, 116))
+        contents.setWordWrap(True)
+        layout.addWidget(contents, 1)
+        buttons = QDialogButtonBox(QDialogButtonBox.Close)
+        select = buttons.addButton('Select on map', QDialogButtonBox.AcceptRole)
+        select.setEnabled(False)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        def fill():
+            contents.clear()
+            select.setEnabled(False)
+            for row in entries:
+                top, bottom, name, handle = row
+                if levels.currentData() is not None and top != levels.currentData():
+                    continue
+                span = f'Y {bottom}' if bottom == top else f'Y {bottom}–{top}'
+                item = QListWidgetItem(self.layer_icon(row, 48), f'{name}\n{span}')
+                item.setData(Qt.UserRole, (top, handle))
+                item.setToolTip(f'{name} · {span}')
+                contents.addItem(item)
+
+        def activate():
+            item = contents.currentItem()
+            if item is None:
+                return
+            height, handle = item.data(Qt.UserRole)
+            self.select_layer(height, handle)
+            dialog.accept()
+
+        def change_height():
+            self.stack_height = levels.currentData()
+            fill()
+
+        levels.setCurrentIndex(max(0, levels.findData(self.stack_height)))
+        levels.currentIndexChanged.connect(change_height)
+        contents.itemSelectionChanged.connect(lambda: select.setEnabled(contents.currentItem() is not None))
+        contents.itemDoubleClicked.connect(lambda _: activate())
+        select.clicked.connect(activate)
+        fill()
+        dialog.exec()
 
     def choose_layer(self, item, _column=0):
         if not self.isl():
@@ -2182,14 +2301,15 @@ class MapPage(Page):
         value = item.data(0, Qt.UserRole)
         if not value:
             return
-        height, handle = value
+        self.select_layer(*value)
+
+    def select_layer(self, height, handle):
         self.show_height(height)
-        if handle is not None:
-            self.selection = [handle]
-            self.sel_habitat = None
-            self.update_inspector()
-            self.overlay.update()
-            self.habitats_item.update()
+        self.selection = [handle] if handle is not None and handle >= 0 else []
+        self.sel_habitat = None
+        self.update_inspector()
+        self.overlay.update()
+        self.habitats_item.update()
 
     def start_pick_cut(self):
         self.pick_cut = True
@@ -2942,6 +3062,7 @@ class MapPage(Page):
         self.i_zoom.setText(f'Zoom {z:.1f}×')
         self.scalebar.update()
         self.minimap.update()
+        self.position_stack_button()
         for mk in self.markers:
             mk.update()
 
