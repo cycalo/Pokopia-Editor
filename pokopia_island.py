@@ -713,7 +713,7 @@ class Island:
         c = self.get_cell(wx, y, wz)
         return (y, c) if c is not None else None
 
-    def paint(self, cols, bid):
+    def paint(self, cols, bid, all_layers=False):
         """Replace the ground block of each column. Columns under water keep their water. Returns the count."""
         if self.cls(bid) != C_SOLID or bid in (AIR, BEDROCK, OBJECT):
             raise EditError('Pick a terrain or building block to paint with.')
@@ -722,13 +722,19 @@ class Island:
             t = self._top_solid(wx, wz)
             if not t or t[0] == 0:
                 continue
-            y, c = t
-            if c & ID_MASK == bid:
-                continue
-            self.set_cell(wx, y, wz, bid | PLAYER)
-            n += 1
+            top = t[0]
+            for y in (range(1, top + 1) if all_layers else (top,)):
+                c = self.get_cell(wx, y, wz)
+                if c is None:
+                    continue
+                old = c & ID_MASK
+                if old in (AIR, BEDROCK, OBJECT, bid) or self.cls(old) != C_SOLID:
+                    continue
+                if all_layers and y != top and block_kind(old) != K_TERRAIN:
+                    continue
+                self.set_cell(wx, y, wz, bid | PLAYER)
+                n += 1
         return n
-
 
     def set_liquid(self, cols, bid):
         """Turn the ground block of each column into a full liquid block (a one-deep pool). Returns the count."""

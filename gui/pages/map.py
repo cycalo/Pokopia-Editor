@@ -567,7 +567,7 @@ class OverlayItem(QGraphicsItem):
             p.restore()
         # brush
         b = page.brush_at
-        if b and page.tool in ('paint', 'height') and not (page.drag and page.drag['kind'] in ('height_box')):
+        if b and page.tool in ('paint', 'height') and not (page.drag and page.drag['kind'] in ('height_box', 'paint_box')):
             cells = page.brush_cells(*b)
             path = QPainterPath()
             shape = page.height_brush_shape if page.tool == 'height' else page.brush_shape
@@ -611,10 +611,10 @@ class OverlayItem(QGraphicsItem):
                     p.drawPixmap(QRectF(cc.x() - side / 2, cc.y() - side / 2, side, side), pm, QRectF(0, 0, pm.width(), pm.height()))
                     p.setOpacity(1.0)
         # box selection
-        if page.drag and page.drag.get('kind') in ('box', 'height_box'):
+        if page.drag and page.drag.get('kind') in ('box', 'height_box', 'paint_box'):
             a, bpt = page.drag['a'], page.drag['b']
             rect = QRectF(a, bpt).normalized()
-            if page.drag['kind'] in ('height_box'):
+            if page.drag['kind'] in ('height_box', 'paint_box'):
                 ax, az = page.world(a)
                 bx, bz = page.world(bpt)
                 rect = QRectF(min(ax, bx) - isl.x0, min(az, bz) - isl.z0,
@@ -1452,6 +1452,12 @@ class MapPage(Page):
         self.block_grid = IconGrid(36)
         self.block_grid.currentItemChanged.connect(self.block_chosen)
         v.addWidget(self.block_grid)
+        self.paint_layers_check = QCheckBox('Paint all terrain layers below')
+        self.paint_layers_check.setToolTip(
+            'Paint the surface and existing terrain beneath it. Preserve bedrock, '
+            'water, empty spaces, objects and buried building blocks. '
+            'With a height limit, only paint at or below the visible surface.')
+        v.addWidget(self.paint_layers_check)
         self.build_brush_controls(v, height=False)
         self.block_info = W.label('', 'small', wrap=True)
         v.addWidget(self.block_info)
@@ -1943,7 +1949,7 @@ class MapPage(Page):
                            'flatten': f'Drag to flatten to Y {self.flatten_y}  ·  right-click: copy a height  ·  [ ] brush size'}[self.height_mode],
                 'habitat': 'Pick a habitat, then click where its corner goes  ·  R to turn',
                 'pick': 'Click an object or the ground to copy it into a tool'}[self.tool]
-        if self.tool == 'height':
+        if self.tool in ('height', 'paint'):
             text += '  ·  Shift-drag: apply to a rectangle'
         text += '  ·  Space + drag: pan'
         self.hint.setText(text)
@@ -2193,6 +2199,7 @@ class MapPage(Page):
                      stamp_rot=self.stamp_rot, recipe=self.recipe['dex'] if self.recipe else None,
                      height_mode=self.height_mode, flatten_y=self.flatten_y, show_heights=self.show_heights,
                      lift_objects=self.lift_objects_check.isChecked(),
+                     paint_all_layers=self.paint_layers_check.isChecked(),
                      cut_enabled=self.cut_row.toggle.isChecked(), cut_y=self.cut_slider.value(),
                      searches={name: getattr(self, name).text() for name in
                                ('place_search', 'block_search', 'recipe_search')},
@@ -2239,6 +2246,8 @@ class MapPage(Page):
             self.flat_spin.setValue(state['flatten_y'])
         if state.get('height_mode') in dict((key, name) for key, name, _ in HEIGHT_MODES):
             self.set_height_mode(state['height_mode'])
+        if isinstance(state.get('paint_all_layers'), bool):
+            self.paint_layers_check.setChecked(state['paint_all_layers'])
         if isinstance(state.get('lift_objects'), bool):
             self.lift_objects_check.setChecked(state['lift_objects'])
         if isinstance(state.get('show_heights'), bool):
@@ -2754,9 +2763,9 @@ class MapPage(Page):
                         self.app.toast(f'Flatten height set to Y {col[2]}', 'info')
                     return True
                 mode = 'lower' if mode == 'raise' else 'raise'
-            if self.tool == 'height' and btn == Qt.LeftButton and mods & Qt.ShiftModifier:
-                self.drag = dict(kind='height_box',
-                                 mode=mode, a=sp, b=sp)
+            if btn == Qt.LeftButton and mods & Qt.ShiftModifier:
+                self.drag = dict(kind='paint_box' if self.tool == 'paint' else 'height_box',
+                                 mode='paint' if self.tool == 'paint' else mode, a=sp, b=sp)
                 self.overlay.update()
                 return True
             self.drag = dict(kind='brush', mode=mode, done=set(), count=0)
@@ -2772,7 +2781,7 @@ class MapPage(Page):
         wx, wz = self.world(sp)
         self.hover_info(wx, wz)
         d = self.drag
-        if d and d['kind'] in ('height_box'):
+        if d and d['kind'] in ('height_box', 'paint_box'):
             d['b'] = sp
             ax, az = self.world(d['a'])
             bx, bz = self.world(sp)
@@ -2826,7 +2835,7 @@ class MapPage(Page):
         if not d or not v:
             return
         isl = v.isl
-        if d['kind'] in ('height_box'):
+        if d['kind'] in ('height_box', 'paint_box'):
             ax, az = self.world(d['a'])
             bx, bz = self.world(sp)
             cells = [(x, z)
@@ -2834,7 +2843,9 @@ class MapPage(Page):
                      for z in range(max(isl.z0, min(az, bz)), min(isl.z0 + isl.height - 1, max(az, bz)) + 1)]
             lift = self.lift_objects_check.isChecked()
             try:
-                if d['mode'] == 'raise':
+                if d['mode'] == 'paint':
+                    n = isl.paint(cells, self.paint_block, all_layers=self.paint_layers_check.isChecked())
+                elif d['mode'] == 'raise':
                     n = isl.raise_ground(cells, lift_objects=lift)
                 elif d['mode'] == 'lower':
                     n = isl.lower_ground(cells)
@@ -3027,7 +3038,7 @@ class MapPage(Page):
         d['done'].update(cells)
         try:
             if self.tool == 'paint':
-                n = isl.paint(cells, self.paint_block)
+                n = isl.paint(cells, self.paint_block, all_layers=self.paint_layers_check.isChecked())
             elif d['mode'] == 'raise':
                 n = isl.raise_ground(cells, None, lift_objects=self.lift_objects_check.isChecked())
             elif d['mode'] == 'lower':

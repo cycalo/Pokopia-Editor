@@ -322,3 +322,7 @@ Choose Raise, Lower or Flatten, then Shift-drag and release to apply to the rect
 ## Pan with Space-drag after using sidebar controls
 
 Hold Space and left-drag over the map with any tool. Release Space to return to editing. Works while a sidebar control has focus.
+
+## Paint rectangles and all underlying terrain layers
+
+In Paint ground, Shift-drag and release to paint a rectangle. Enable Paint all terrain layers below above Brush shape to include existing terrain beneath the surface. Bedrock, water, air, objects and buried building blocks are preserved. The checkbox is remembered and the action undoes together.
