@@ -1515,6 +1515,12 @@ class MapPage(Page):
         self.flat_row.setLayout(frow)
         v.addWidget(self.flat_row)
         self.build_brush_controls(v, height=True)
+        self.lift_objects_check = QCheckBox('Move objects and placed items up')
+        self.lift_objects_check.setToolTip(
+            'When raising ground, lift objects in the way and anything stacked above them. '
+            'Keeps their arrangement. Does not move loose drops or Glowing Blocks. '
+            'Lowering ground leaves objects in place.')
+        v.addWidget(self.lift_objects_check)
         self.heights_check = QCheckBox('Colour the map by height')
         self.heights_check.setChecked(True)
         self.heights_check.toggled.connect(self.set_show_heights)
@@ -2157,6 +2163,7 @@ class MapPage(Page):
                      paint_block=self.paint_block, place_var=self.place_var, place_dir=self.place_dir,
                      stamp_rot=self.stamp_rot, recipe=self.recipe['dex'] if self.recipe else None,
                      height_mode=self.height_mode, flatten_y=self.flatten_y, show_heights=self.show_heights,
+                     lift_objects=self.lift_objects_check.isChecked(),
                      cut_enabled=self.cut_row.toggle.isChecked(), cut_y=self.cut_slider.value(),
                      searches={name: getattr(self, name).text() for name in
                                ('place_search', 'block_search', 'recipe_search')},
@@ -2203,6 +2210,8 @@ class MapPage(Page):
             self.flat_spin.setValue(state['flatten_y'])
         if state.get('height_mode') in dict((key, name) for key, name, _ in HEIGHT_MODES):
             self.set_height_mode(state['height_mode'])
+        if isinstance(state.get('lift_objects'), bool):
+            self.lift_objects_check.setChecked(state['lift_objects'])
         if isinstance(state.get('show_heights'), bool):
             self.heights_check.setChecked(state['show_heights'])
         searches = state.get('searches', {})
@@ -2956,11 +2965,11 @@ class MapPage(Page):
             if self.tool == 'paint':
                 n = isl.paint(cells, self.paint_block)
             elif d['mode'] == 'raise':
-                n = isl.raise_ground(cells, None)
+                n = isl.raise_ground(cells, None, lift_objects=self.lift_objects_check.isChecked())
             elif d['mode'] == 'lower':
                 n = isl.lower_ground(cells)
             else:
-                n = isl.level_ground(cells, self.flatten_y, None)
+                n = isl.level_ground(cells, self.flatten_y, None, lift_objects=self.lift_objects_check.isChecked())
         except pi.EditError as ex:
             self.drag = None
             return self.fail(ex)

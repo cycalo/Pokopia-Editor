@@ -310,3 +310,7 @@ Reopening restores tool choices, brushes, filters, map view and the last page. P
 ## Reveal saved Glowing Block positions on island maps
 
 Enable Glowing Blocks under Map overlays and click a gold star to inspect its height. Reload after an in-game save; unopened rewards remain unknown.
+
+## Lift placed objects and stacks when raising terrain
+
+In Ground height enable Move objects and placed items up. Raise/Flatten lifts obstructions and stacks; lowering leaves them in place. Loose drops and Glowing Blocks are excluded. Undo restores the whole stroke.

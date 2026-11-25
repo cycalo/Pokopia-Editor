@@ -755,8 +755,22 @@ class Island:
                 return c
         return AIR
 
+    def _lift_surface_objects(self, wx, wz, ground_y):
+        """Lift obstructing placed items and their stacks, preserving their layout."""
+        moving = {o.handle: o for o in self.objects_in(wx, wz, wx, wz)
+                  if o.y <= ground_y + 1 < o.y + o.h}
+        pending = list(moving.values())
+        while pending:
+            base = pending.pop()
+            for other in self.objects_in(*base.box):
+                if other.handle not in moving and other.y >= base.y + base.h:
+                    moving[other.handle] = other
+                    pending.append(other)
+        if moving:
+            self.move_objects([(o.handle, o.x, o.y + 1, o.z, o.dir)
+                               for o in moving.values()])
 
-    def raise_ground(self, cols, bid=None):
+    def raise_ground(self, cols, bid=None, lift_objects=False):
         n = 0
         for wx, wz in cols:
             t = self._top_solid(wx, wz)
@@ -764,12 +778,14 @@ class Island:
                 continue
             y, c = t
             above = self.get_cell(wx, y + 1, wz)
+            if lift_objects:
+                self._lift_surface_objects(wx, wz, y)
+                above = self.get_cell(wx, y + 1, wz)
             if above is None or self.cls_table[above & ID_MASK] in (C_SOLID, C_OBJECT):
                 continue
             self.set_cell(wx, y + 1, wz, (bid if bid else c & ID_MASK) | PLAYER)
             n += 1
         return n
-
 
     def lower_ground(self, cols):
         n = 0
@@ -785,7 +801,7 @@ class Island:
             n += 1
         return n
 
-    def level_ground(self, cols, target, bid=None):
+    def level_ground(self, cols, target, bid=None, lift_objects=False):
         """Raise or lower each column until its ground is at `target`."""
         n = 0
         for wx, wz in cols:
@@ -794,12 +810,11 @@ class Island:
                 t = self._top_solid(wx, wz)
                 if not t or t[0] == target:
                     break
-                k = self.raise_ground([(wx, wz)], bid) if t[0] < target else self.lower_ground([(wx, wz)])
+                k = self.raise_ground([(wx, wz)], bid, lift_objects=lift_objects) if t[0] < target else self.lower_ground([(wx, wz)])
                 if not k:
                     break
                 n += k
         return n
-
 
     # ------------------------------------------------------------------ object edits
     def _rec(self, i):
