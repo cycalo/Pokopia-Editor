@@ -314,3 +314,7 @@ Enable Glowing Blocks under Map overlays and click a gold star to inspect its he
 ## Lift placed objects and stacks when raising terrain
 
 In Ground height enable Move objects and placed items up. Raise/Flatten lifts obstructions and stacks; lowering leaves them in place. Loose drops and Glowing Blocks are excluded. Undo restores the whole stroke.
+
+## Apply ground height to Shift-drag rectangles
+
+Choose Raise, Lower or Flatten, then Shift-drag and release to apply to the rectangle. Esc cancels before release. The rectangle is one undo step and respects object lifting.

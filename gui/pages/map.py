@@ -567,7 +567,7 @@ class OverlayItem(QGraphicsItem):
             p.restore()
         # brush
         b = page.brush_at
-        if b and page.tool in ('paint', 'height'):
+        if b and page.tool in ('paint', 'height') and not (page.drag and page.drag['kind'] in ('height_box')):
             cells = page.brush_cells(*b)
             path = QPainterPath()
             shape = page.height_brush_shape if page.tool == 'height' else page.brush_shape
@@ -611,9 +611,14 @@ class OverlayItem(QGraphicsItem):
                     p.drawPixmap(QRectF(cc.x() - side / 2, cc.y() - side / 2, side, side), pm, QRectF(0, 0, pm.width(), pm.height()))
                     p.setOpacity(1.0)
         # box selection
-        if page.drag and page.drag.get('kind') == 'box':
+        if page.drag and page.drag.get('kind') in ('box', 'height_box'):
             a, bpt = page.drag['a'], page.drag['b']
             rect = QRectF(a, bpt).normalized()
+            if page.drag['kind'] in ('height_box'):
+                ax, az = page.world(a)
+                bx, bz = page.world(bpt)
+                rect = QRectF(min(ax, bx) - isl.x0, min(az, bz) - isl.z0,
+                              abs(bx - ax) + 1, abs(bz - az) + 1)
             pen = QPen(acc, 1.2, Qt.DashLine)
             pen.setCosmetic(True)
             p.setPen(pen)
@@ -1917,6 +1922,8 @@ class MapPage(Page):
                            'flatten': f'Drag to flatten to Y {self.flatten_y}  ·  right-click: copy a height  ·  [ ] brush size'}[self.height_mode],
                 'habitat': 'Pick a habitat, then click where its corner goes  ·  R to turn',
                 'pick': 'Click an object or the ground to copy it into a tool'}[self.tool]
+        if self.tool == 'height':
+            text += '  ·  Shift-drag: apply to a rectangle'
         self.hint.setText(text)
         self.hint.adjustSize()
         self.place_floating()
@@ -2725,6 +2732,11 @@ class MapPage(Page):
                         self.app.toast(f'Flatten height set to Y {col[2]}', 'info')
                     return True
                 mode = 'lower' if mode == 'raise' else 'raise'
+            if self.tool == 'height' and btn == Qt.LeftButton and mods & Qt.ShiftModifier:
+                self.drag = dict(kind='height_box',
+                                 mode=mode, a=sp, b=sp)
+                self.overlay.update()
+                return True
             self.drag = dict(kind='brush', mode=mode, done=set(), count=0)
             self.brush_apply(wx, wz)
             return True
@@ -2738,6 +2750,14 @@ class MapPage(Page):
         wx, wz = self.world(sp)
         self.hover_info(wx, wz)
         d = self.drag
+        if d and d['kind'] in ('height_box'):
+            d['b'] = sp
+            ax, az = self.world(d['a'])
+            bx, bz = self.world(sp)
+            self.hint.setText(f'{abs(bx-ax)+1} × {abs(bz-az)+1} cells  ·  Release to {d["mode"]}  ·  Esc to cancel')
+            self.hint.adjustSize()
+            self.overlay.update()
+            return
         if self.tool == 'habitat':
             self.brush_at = (wx, wz)
             if self.recipe:
@@ -2784,7 +2804,29 @@ class MapPage(Page):
         if not d or not v:
             return
         isl = v.isl
-        if d['kind'] == 'box':
+        if d['kind'] in ('height_box'):
+            ax, az = self.world(d['a'])
+            bx, bz = self.world(sp)
+            cells = [(x, z)
+                     for x in range(max(isl.x0, min(ax, bx)), min(isl.x0 + isl.width - 1, max(ax, bx)) + 1)
+                     for z in range(max(isl.z0, min(az, bz)), min(isl.z0 + isl.height - 1, max(az, bz)) + 1)]
+            lift = self.lift_objects_check.isChecked()
+            try:
+                if d['mode'] == 'raise':
+                    n = isl.raise_ground(cells, lift_objects=lift)
+                elif d['mode'] == 'lower':
+                    n = isl.lower_ground(cells)
+                else:
+                    n = isl.level_ground(cells, self.flatten_y, lift_objects=lift)
+                if n:
+                    self.commit(f'{d["mode"].capitalize()} ground in rectangle ({len(cells)} cells, {n} blocks)')
+                else:
+                    self.app.toast('No ground changed in this rectangle.', 'info')
+            except pi.EditError as ex:
+                self.fail(ex)
+            self.update_hint()
+            self.overlay.update()
+        elif d['kind'] == 'box':
             a, b = d['a'], d['b']
             x0, x1 = sorted((a.x(), b.x()))
             z0, z1 = sorted((a.y(), b.y()))
