@@ -1068,7 +1068,7 @@ class MapPage(Page):
         self.ghost = None
         self.brush_at = None
         self.brush = 1
-        self.height_brush = 3
+        self.height_brush = 1
         self.height_mode, self.flatten_y, self.show_heights = 'raise', 40, True
         self.recipes, self.recipe_sources, self.recipe = {}, set(), None
         self.stamp_rot, self.stamp_ghost, self.pick_cut, self.stamp_liquids = 0, None, False, []
